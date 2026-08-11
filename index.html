@@ -489,13 +489,15 @@ const GLUTE_COOL = [
 /* dedupe exercise objects by name, keeping order */
 function uniqEx(list){ const seen=new Set(), out=[]; for(const e of list){ if(!seen.has(e.name)){ seen.add(e.name); out.push(e); } } return out; }
 
-/* one glute block from a pool, cursor-based so consecutive blocks don't repeat */
-function bootyBlock(label, pool, start, n, work, rest){
+/* one glute block from a pool, cursor-based so consecutive blocks don't repeat.
+   restName/restCue let weighted blocks say "Switch weights" vs a plain "Rest". */
+function bootyBlock(label, pool, start, n, work, rest, restName, restCue){
   const steps=[]; let i=start;
   for(let k=0;k<n;k++){
     const ex=pool[i % pool.length]; i++;
     steps.push({phase:label, kind:"work", name:ex.name, cue:ex.cue, dur:work, side:ex.uni});
-    if(k<n-1) steps.push({phase:label, kind:"rest", name:"Rest", cue:"Reset, breathe, squeeze ready", dur:rest});
+    if(k<n-1) steps.push({phase:label, kind:"rest", name:restName||"Rest",
+      cue:restCue||"Reset, breathe, squeeze ready", dur:rest});
   }
   return {steps, next:i};
 }
@@ -513,37 +515,65 @@ function generateBooty(cfg){
   const P = presets("booty", cfg.intensity);
   const steps=[]; const sum=s=>s.reduce((t,x)=>t+x.dur,0);
 
+  // realistic rests — weighted moves need time to re-rack / swap weight & get set
+  const switchRest = Math.max(30, P.rest + 18);   // between weighted lifts
+  const bandRest   = Math.max(15, P.rest);        // bands stay on — quick to flip
+  const burnRest   = Math.max(8, P.rest - 5);     // bodyweight pulses
+  const changeRest = 30;                          // block-to-block station change
+  const changeStep = phase => ({phase, kind:"rest", name:"Switch station",
+    cue:"Put weights away / grab your bands — set up for the next block", dur:changeRest});
+
   // activation / warm-up (~2.5 min)
   GLUTE_WARM.forEach(w=>steps.push({phase:"Warm-Up", kind:"warm", name:w[0], cue:w[1], dur:30, side:!!w[2]}));
 
   const coolDur = GLUTE_COOL.length*30;
-  const burnRest = Math.max(8, P.rest-5);
-  const finisherDur = P.work*4 + burnRest*3;      // reserve the burnout finisher
+  const finisherDur = P.work*4 + burnRest*3 + changeRest;   // reserve burnout + its changeover
   const budget = cfg.min*60 - coolDur - finisherDur;
 
   const wpool = uniqEx(shuffle(GLUTES.weighted.map(mkEx)));
   const bpool = uniqEx(shuffle(GLUTES.band.map(mkEx)));
   let wi=0, bi=0, blk=1;
 
-  function tryPush(res){
-    if(sum(steps)+sum(res.steps) <= budget){ steps.push(...res.steps); return true; }
-    // trim to fit, then signal stop
-    let acc=sum(steps); for(const s of res.steps){ if(acc+s.dur>budget) break; steps.push(s); acc+=s.dur; }
-    return false;
+  // add a block; if it doesn't fully fit, trim to whole moves (keeps rests realistic)
+  function pushBlock(res){
+    const lead = steps.some(s=>s.kind==="work") ? changeRest : 0;
+    if(sum(steps)+lead+sum(res.steps) <= budget){
+      if(lead) steps.push(changeStep(res.steps[0].phase));
+      steps.push(...res.steps); return true;
+    }
+    let acc=sum(steps)+lead; const fitted=[];
+    for(const s of res.steps){ if(acc+s.dur>budget) break; fitted.push(s); acc+=s.dur; }
+    while(fitted.length && fitted[fitted.length-1].kind==="rest") fitted.pop();
+    if(fitted.filter(s=>s.kind==="work").length>=2){
+      if(lead) steps.push(changeStep(res.steps[0].phase));
+      steps.push(...fitted);
+    }
+    return false;   // stop after any partial block
   }
-  while(sum(steps) < budget - 40 && blk<=6){
-    const sb = bootyBlock("Glute Strength "+blk, wpool, wi, 5, P.work, P.rest);
-    wi=sb.next; if(!tryPush(sb)) break;
-    const bb = bootyBlock("Band Burn "+blk, bpool, bi, 5, P.work, P.rest);
-    bi=bb.next; if(!tryPush(bb)) break;
+
+  while(sum(steps) < budget - 60 && blk<=5){
+    const sb = bootyBlock("Glute Strength "+blk, wpool, wi, 4, P.work, switchRest,
+      "Switch weights", "Rack up & grab your next weight — get set");
+    wi=sb.next; if(!pushBlock(sb)) break;
+    const bb = bootyBlock("Band Burn "+blk, bpool, bi, 5, P.work, bandRest,
+      "Rest", "Reset, breathe, squeeze ready");
+    bi=bb.next; if(!pushBlock(bb)) break;
     blk++;
   }
-  // guarantee at least one weighted + one band block on very short durations
-  if(blk===1 && !steps.some(s=>/Glute Strength/.test(s.phase))) steps.push(...bootyBlock("Glute Strength 1", wpool, 0, 4, P.work, P.rest).steps);
-  if(blk===1 && !steps.some(s=>/Band Burn/.test(s.phase)))     steps.push(...bootyBlock("Band Burn 1", bpool, 0, 4, P.work, P.rest).steps);
+  // guarantee at least one of each on very short durations
+  if(!steps.some(s=>/Glute Strength/.test(s.phase)))
+    steps.push(...bootyBlock("Glute Strength 1", wpool, 0, 3, P.work, switchRest,
+      "Switch weights", "Rack up & grab your next weight — get set").steps);
+  if(!steps.some(s=>/Band Burn/.test(s.phase))){
+    steps.push(changeStep("Band Burn 1"));
+    steps.push(...bootyBlock("Band Burn 1", bpool, 0, 4, P.work, bandRest, "Rest", "Reset, breathe, squeeze ready").steps);
+  }
 
-  // burnout finisher — bodyweight pulses, short rest
-  steps.push(...bootyBlock("Burnout", uniqEx(shuffle(GLUTES.burnout.map(mkEx))), 0, 4, P.work, burnRest).steps);
+  // burnout finisher — bodyweight pulses, short rest, with a changeover in
+  steps.push({phase:"Burnout", kind:"rest", name:"Switch station",
+    cue:"Weights down — last push, all bodyweight", dur:changeRest});
+  steps.push(...bootyBlock("Burnout", uniqEx(shuffle(GLUTES.burnout.map(mkEx))), 0, 4, P.work, burnRest,
+    "Rest", "Quick breath — keep the burn").steps);
 
   // cooldown
   GLUTE_COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:30, side:!!c[2]}));
@@ -811,7 +841,7 @@ function loadStep(i){
   }
   renderClock();
   // voice
-  if(rest){ say(s.nextName? ("Rest. Next, "+s.nextName):"Rest"); }
+  if(rest){ const w=s.name||"Rest"; say(s.nextName? (w+". Next, "+s.nextName):w); }
   else if(move){ say(s.name.replace("To the","Move to the") + (s.nextName? (". Next, "+s.nextName):"")); }
   else if(s.kind==="prep"){ say("Get ready"); }
   else{ say(s.name + (s.side? ", both sides":"")); }
