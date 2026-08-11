@@ -160,6 +160,10 @@
         <div class="nm">RESHAPE</div>
         <div class="ds">1Rebel-style. Tighter intervals, more reps, less rest.</div>
       </div>
+      <div class="style" data-style="booty" aria-pressed="false" style="grid-column:1/-1">
+        <div class="nm">BOOTY BURN 🍑</div>
+        <div class="ds">Glutes only — bands + weights. Bridges, hip thrusts, kickbacks &amp; a burnout finisher. No running. Defaults to 30 min.</div>
+      </div>
     </div>
 
     <h2 class="section">Focus</h2>
@@ -427,6 +431,130 @@ const COOL = [
   ["Child's Pose","Sink back, long deep breaths"],
 ];
 
+/* ============================================================
+   BOOTY BURN — glute-only library + generator
+   Assumes resistance bands + a decent gym (weights/bench available).
+   ============================================================ */
+const GLUTES = {
+  weighted: [
+    ["Barbell Hip Thrust","Shoulders on the bench, drive hips up, squeeze hard"],
+    ["Dumbbell Glute Bridge","Weight on the hips, bridge up, pause at the top"],
+    ["Romanian Deadlift","Soft knees, hips back, feel the hamstrings load"],
+    ["Bulgarian Split Squat","Back foot up, sink straight down", true],
+    ["Sumo Deadlift","Wide stance, toes out, drive through the heels"],
+    ["Weighted Step-Up","Drive through the top foot, stand tall", true],
+    ["Goblet Sumo Squat","Toes wide, sink low, squeeze glutes at the top"],
+    ["Single-Leg RDL","Hinge over one leg, flat back, slow control", true],
+    ["Weighted Curtsy Lunge","Cross behind, keep the hips square", true],
+    ["Reverse Lunge","Long step back, power up through the front heel", true],
+    ["Cable/Band Pull-Through","Hinge, then snap the hips forward, squeeze"],
+    ["Kettlebell Swing","Hips drive it — glutes snap, arms just guide"],
+  ],
+  band: [
+    ["Banded Lateral Walk","Band above the knees, stay low, small steps"],
+    ["Banded Glute Bridge","Press the knees out hard at the top"],
+    ["Banded Kickback","On all fours, drive the heel to the ceiling", true],
+    ["Banded Clamshell","Side-lying, open the knee, hips stacked", true],
+    ["Banded Fire Hydrant","Knee out to the side, hips square", true],
+    ["Banded Monster Walk","Wide stance, walk forward then back"],
+    ["Banded Squat","Push the knees out against the band the whole way"],
+    ["Banded Standing Kickback","Stand tall, drive one leg straight back", true],
+    ["Banded Hip Abduction","Seated or standing, press out and control back", true],
+  ],
+  burnout: [
+    ["Glute Bridge Pulse","Hold at the top — small, fast pulses"],
+    ["Donkey Kick Pulse","Heel to the ceiling, tiny pulses", true],
+    ["Frog Pump","Heels together, knees wide, pump the hips up"],
+    ["Fire Hydrant Pulse","Knee out to the side, pulse at the top", true],
+    ["Squat Pulse Hold","Sink low and pulse an inch — stay down"],
+    ["Single-Leg Glute Bridge","One leg, hips high, control the lower", true],
+    ["Bridge March","Hips up the whole time, march the knees slow"],
+  ],
+};
+const GLUTE_WARM = [
+  ["Glute Bridge","Slow reps, squeeze hard at the top"],
+  ["Banded Lateral Walk","Wake up the side glutes, stay low"],
+  ["Bodyweight Good Morning","Hinge at the hips, flat back"],
+  ["Fire Hydrant","Open the hip, controlled", true],
+  ["World's Greatest Stretch","Lunge, reach and rotate", true],
+];
+const GLUTE_COOL = [
+  ["Figure-Four Stretch","Ankle over the knee, pull in gently", true],
+  ["Pigeon Pose","Sink the hip down and breathe", true],
+  ["Standing Quad Stretch","Heel to glute, stand tall", true],
+  ["Seated Forward Fold","Reach long, let the hamstrings release"],
+  ["Child's Pose","Sink back, long deep breaths"],
+];
+
+/* dedupe exercise objects by name, keeping order */
+function uniqEx(list){ const seen=new Set(), out=[]; for(const e of list){ if(!seen.has(e.name)){ seen.add(e.name); out.push(e); } } return out; }
+
+/* one glute block from a pool, cursor-based so consecutive blocks don't repeat */
+function bootyBlock(label, pool, start, n, work, rest){
+  const steps=[]; let i=start;
+  for(let k=0;k<n;k++){
+    const ex=pool[i % pool.length]; i++;
+    steps.push({phase:label, kind:"work", name:ex.name, cue:ex.cue, dur:work, side:ex.uni});
+    if(k<n-1) steps.push({phase:label, kind:"rest", name:"Rest", cue:"Reset, breathe, squeeze ready", dur:rest});
+  }
+  return {steps, next:i};
+}
+
+function attachNext(steps){
+  for(let i=0;i<steps.length;i++){
+    if(steps[i].kind==="rest"||steps[i].kind==="prep"){
+      const nx=steps.slice(i+1).find(s=>s.kind!=="rest"&&s.kind!=="move");
+      steps[i].nextName = nx ? nx.name : null;
+    }
+  }
+}
+
+function generateBooty(cfg){
+  const P = presets("booty", cfg.intensity);
+  const steps=[]; const sum=s=>s.reduce((t,x)=>t+x.dur,0);
+
+  // activation / warm-up (~2.5 min)
+  GLUTE_WARM.forEach(w=>steps.push({phase:"Warm-Up", kind:"warm", name:w[0], cue:w[1], dur:30, side:!!w[2]}));
+
+  const coolDur = GLUTE_COOL.length*30;
+  const burnRest = Math.max(8, P.rest-5);
+  const finisherDur = P.work*4 + burnRest*3;      // reserve the burnout finisher
+  const budget = cfg.min*60 - coolDur - finisherDur;
+
+  const wpool = uniqEx(shuffle(GLUTES.weighted.map(mkEx)));
+  const bpool = uniqEx(shuffle(GLUTES.band.map(mkEx)));
+  let wi=0, bi=0, blk=1;
+
+  function tryPush(res){
+    if(sum(steps)+sum(res.steps) <= budget){ steps.push(...res.steps); return true; }
+    // trim to fit, then signal stop
+    let acc=sum(steps); for(const s of res.steps){ if(acc+s.dur>budget) break; steps.push(s); acc+=s.dur; }
+    return false;
+  }
+  while(sum(steps) < budget - 40 && blk<=6){
+    const sb = bootyBlock("Glute Strength "+blk, wpool, wi, 5, P.work, P.rest);
+    wi=sb.next; if(!tryPush(sb)) break;
+    const bb = bootyBlock("Band Burn "+blk, bpool, bi, 5, P.work, P.rest);
+    bi=bb.next; if(!tryPush(bb)) break;
+    blk++;
+  }
+  // guarantee at least one weighted + one band block on very short durations
+  if(blk===1 && !steps.some(s=>/Glute Strength/.test(s.phase))) steps.push(...bootyBlock("Glute Strength 1", wpool, 0, 4, P.work, P.rest).steps);
+  if(blk===1 && !steps.some(s=>/Band Burn/.test(s.phase)))     steps.push(...bootyBlock("Band Burn 1", bpool, 0, 4, P.work, P.rest).steps);
+
+  // burnout finisher — bodyweight pulses, short rest
+  steps.push(...bootyBlock("Burnout", uniqEx(shuffle(GLUTES.burnout.map(mkEx))), 0, 4, P.work, burnRest).steps);
+
+  // cooldown
+  GLUTE_COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:30, side:!!c[2]}));
+
+  // intro
+  steps.unshift({phase:"Warm-Up", kind:"prep", name:"Get Ready", cue:"Bands on — let's build", dur:10});
+
+  attachNext(steps);
+  return steps;
+}
+
 /* insert a relocation window whenever the workout switches between the
    treadmill and the floor, so you have time to actually walk over */
 function withTransitions(steps, cfg){
@@ -450,6 +578,7 @@ function withTransitions(steps, cfg){
 }
 
 function generate(cfg){
+  if(cfg.style==="booty") return generateBooty(cfg);
   const P = presets(cfg.style, cfg.intensity);
   const F = FOCUS[cfg.focus];
   const steps=[];
@@ -492,12 +621,7 @@ function generate(cfg){
   const seq = cfg.treadmill ? withTransitions(steps, cfg) : steps;
 
   // attach next-work pointers for rest announcements
-  for(let i=0;i<seq.length;i++){
-    if(seq[i].kind==="rest"||seq[i].kind==="prep"){
-      const nx = seq.slice(i+1).find(s=>s.kind!=="rest"&&s.kind!=="move");
-      seq[i].nextName = nx ? nx.name : null;
-    }
-  }
+  attachNext(seq);
   return seq;
 }
 
@@ -517,6 +641,7 @@ document.querySelector(".styles").addEventListener("click",e=>{
   const el=e.target.closest(".style"); if(!el)return;
   cfg.style=el.dataset.style;
   document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed", s===el));
+  if(cfg.style==="booty"){ cfg.min=30; pickGroup(durEl,"min",30); }  // 30-min glute session by default
 });
 document.getElementById("focus").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.focus=el.dataset.focus; pickGroup(focusEl,"focus",cfg.focus);
@@ -554,13 +679,23 @@ function byId(i){return document.getElementById(i);}
 function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); window.scrollTo(0,0); }
 
 const fmt = s=>{s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
-const tagFor = phase => phase.startsWith("Tread")?"tread":phase.startsWith("Floor")?"floor":
-  phase.startsWith("Core")?"core":phase.startsWith("Warm")?"warm":"cool";
+const STYLE_LABEL = {barrys:"Barry's", reshape:"Reshape", booty:"Booty Burn"};
+/* per-block colored tag + short label shown in the preview */
+function blockMeta(phase, cfg){
+  if(phase.startsWith("Tread"))         return {tag:"tread", label: cfg.treadmill?"Treadmill":"Cardio"};
+  if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights"};
+  if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands"};
+  if(phase.startsWith("Burnout"))       return {tag:"tread", label:"Burnout"};
+  if(phase.startsWith("Floor"))         return {tag:"floor", label:"Floor"};
+  if(phase.startsWith("Core"))          return {tag:"core",  label:"Core"};
+  if(phase.startsWith("Warm"))          return {tag:"warm",  label:"Warm-Up"};
+  return {tag:"cool", label:"Cool-Down"};
+}
 
 function buildPreview(){
   const total = WORKOUT.reduce((t,s)=>t+s.dur,0);
   byId("m-time").textContent = Math.round(total/60);
-  byId("m-style").textContent = cfg.style==="barrys"?"Barry's":"Reshape";
+  byId("m-style").textContent = STYLE_LABEL[cfg.style] || "Barry's";
   // group by phase
   const groups=[]; let cur=null;
   WORKOUT.forEach(s=>{ if(!cur||cur.phase!==s.phase){cur={phase:s.phase,steps:[]};groups.push(cur);} cur.steps.push(s); });
@@ -571,9 +706,7 @@ function buildPreview(){
   const host=byId("blocks"); host.innerHTML="";
   groups.forEach(g=>{
     const mins=Math.round(g.steps.reduce((t,s)=>t+s.dur,0)/60);
-    const tag=tagFor(g.phase);
-    const label=tag==="tread"?(cfg.treadmill?"Treadmill":"Cardio"):tag==="floor"?"Floor":
-      tag==="core"?"Core":tag==="warm"?"Warm-Up":"Cool-Down";
+    const {tag,label}=blockMeta(g.phase, cfg);
     const moves=g.steps.filter(s=>s.kind!=="rest"&&s.kind!=="move");
     const rows=moves.map(s=>`<div class="ex">
         <div class="en">${s.name}${s.side?' <span class="ec">· both sides</span>':''}</div>
@@ -741,8 +874,9 @@ function finishWorkout(){
   document.body.classList.remove("is-rest","is-move");
   beep(880,0.15,0.3); setTimeout(()=>beep(1180,0.3,0.3),160);
   say("Workout complete. Great work.");
+  const focusLabel = cfg.style==="booty" ? "Glutes" : FOCUS[cfg.focus].label;
   byId("d-sum").textContent = Math.round(totalDur()/60)+" minutes · "+
-    (cfg.style==="barrys"?"Barry's":"Reshape")+" · "+FOCUS[cfg.focus].label;
+    (STYLE_LABEL[cfg.style]||"Barry's")+" · "+focusLabel;
   show("done");
 }
 
