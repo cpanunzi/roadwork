@@ -128,6 +128,9 @@
   body.is-rest{--accent:#19c37d}
   body.is-rest .rfg{stroke:#19c37d}
   body.is-go{--accent:var(--accent)}
+  /* transition / relocation state */
+  body.is-move{--accent:#ffb020}
+  body.is-move .rfg{stroke:#ffb020}
 
   /* done */
   .done{text-align:center; padding:30px 0}
@@ -424,6 +427,28 @@ const COOL = [
   ["Child's Pose","Sink back, long deep breaths"],
 ];
 
+/* insert a relocation window whenever the workout switches between the
+   treadmill and the floor, so you have time to actually walk over */
+function withTransitions(steps, cfg){
+  const MOVE = {chill:20, standard:15, savage:12}[cfg.intensity] || 15;
+  const loc = s => /^Tread/.test(s.phase) ? "tread" : "floor";
+  const out=[]; let prev=null;
+  for(const s of steps){
+    const l = loc(s);
+    if(prev!==null && l!==prev){
+      const toTread = l==="tread";
+      out.push({
+        phase:s.phase, kind:"move",
+        name: toTread ? "To the Treadmill" : "To the Floor",
+        cue:  toTread ? "Hop on and set your pace" : "Grab your weights, get on the mat",
+        dur: MOVE, nextName: s.name,
+      });
+    }
+    out.push(s); prev=l;
+  }
+  return out;
+}
+
 function generate(cfg){
   const P = presets(cfg.style, cfg.intensity);
   const F = FOCUS[cfg.focus];
@@ -463,14 +488,17 @@ function generate(cfg){
   // intro "get ready"
   steps.unshift({phase:"Warm-Up", kind:"prep", name:"Get Ready", cue:"On the mat — here we go", dur:10});
 
+  // add treadmill<->floor relocation windows (only meaningful with a real treadmill)
+  const seq = cfg.treadmill ? withTransitions(steps, cfg) : steps;
+
   // attach next-work pointers for rest announcements
-  for(let i=0;i<steps.length;i++){
-    if(steps[i].kind==="rest"||steps[i].kind==="prep"){
-      const nx = steps.slice(i+1).find(s=>s.kind!=="rest");
-      steps[i].nextName = nx ? nx.name : null;
+  for(let i=0;i<seq.length;i++){
+    if(seq[i].kind==="rest"||seq[i].kind==="prep"){
+      const nx = seq.slice(i+1).find(s=>s.kind!=="rest"&&s.kind!=="move");
+      seq[i].nextName = nx ? nx.name : null;
     }
   }
-  return steps;
+  return seq;
 }
 
 /* ============================================================
@@ -546,7 +574,7 @@ function buildPreview(){
     const tag=tagFor(g.phase);
     const label=tag==="tread"?(cfg.treadmill?"Treadmill":"Cardio"):tag==="floor"?"Floor":
       tag==="core"?"Core":tag==="warm"?"Warm-Up":"Cool-Down";
-    const moves=g.steps.filter(s=>s.kind!=="rest");
+    const moves=g.steps.filter(s=>s.kind!=="rest"&&s.kind!=="move");
     const rows=moves.map(s=>`<div class="ex">
         <div class="en">${s.name}${s.side?' <span class="ec">· both sides</span>':''}</div>
         <div class="ed">${s.dur}s</div></div>`).join("");
@@ -625,24 +653,28 @@ function loadStep(i){
   const s=WORKOUT[i]; if(!s) return finishWorkout();
   T.idx=i; T.dur=s.dur; T.remain=s.dur; T.lastSec=-1; T.switched=false; T.before=durBefore(i);
   const rest = s.kind==="rest";
+  const move = s.kind==="move";
   document.body.classList.toggle("is-rest", rest);
+  document.body.classList.toggle("is-move", move);
   byId("t-phase").textContent=s.phase;
   byId("t-name").textContent=s.name;
   byId("t-cue").textContent=s.cue||"";
   byId("t-side").classList.toggle("hidden", !s.side);
   // next-up line
   const nextLine=byId("t-next");
-  if(rest && s.nextName){ nextLine.innerHTML="Next: <b>"+s.nextName+"</b>"; }
+  if((rest||move) && s.nextName){ nextLine.innerHTML="Next: <b>"+s.nextName+"</b>"; }
   else{
-    const nx=WORKOUT.slice(i+1).find(x=>x.kind!=="rest");
+    const nx=WORKOUT.slice(i+1).find(x=>x.kind!=="rest"&&x.kind!=="move");
     nextLine.innerHTML = nx? "Up next: <b>"+nx.name+"</b>" : "Last one — finish strong";
   }
   renderClock();
   // voice
   if(rest){ say(s.nextName? ("Rest. Next, "+s.nextName):"Rest"); }
+  else if(move){ say(s.name.replace("To the","Move to the") + (s.nextName? (". Next, "+s.nextName):"")); }
   else if(s.kind==="prep"){ say("Get ready"); }
   else{ say(s.name + (s.side? ", both sides":"")); }
-  if(s.kind!=="rest" && s.kind!=="prep") beep(900,0.12,0.3);
+  if(move){ beep(520,0.14,0.22); }
+  else if(s.kind!=="rest" && s.kind!=="prep"){ beep(900,0.12,0.3); }
   if(T.running) startTick();
 }
 
@@ -697,7 +729,7 @@ byId("c-end").addEventListener("click",()=>{ if(confirm("End this workout?")) fi
 function finishWorkout(){
   T.running=false; clearTick(); relWake();
   if("speechSynthesis"in window) speechSynthesis.cancel();
-  document.body.classList.remove("is-rest");
+  document.body.classList.remove("is-rest","is-move");
   beep(880,0.15,0.3); setTimeout(()=>beep(1180,0.3,0.3),160);
   say("Workout complete. Great work.");
   byId("d-sum").textContent = Math.round(totalDur()/60)+" minutes · "+
