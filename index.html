@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a0c" />
+<title>ROADWORK — travel HIIT</title>
+<style>
+  :root{
+    --bg:#0a0a0c; --panel:#141418; --panel2:#1c1c22; --line:#2a2a33;
+    --ink:#f4f4f6; --mut:#8a8a96; --accent:#ff2233; --accent2:#ff5a3c;
+    --good:#19c37d; --warn:#ffb020;
+    --ring:#22222a;
+    --rad:18px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; height:100%}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #17171d 0%, var(--bg) 55%) fixed;
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:560px; margin:0 auto; padding:18px 16px 40px; min-height:100%}
+  .hidden{display:none !important}
+
+  /* header */
+  .brand{display:flex; align-items:center; gap:10px; margin:6px 2px 18px}
+  .brand .dot{width:13px;height:13px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 18px var(--accent); animation:pulse 2.4s infinite ease-in-out}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.6}}
+  .brand h1{font-size:20px; letter-spacing:.28em; margin:0; font-weight:800}
+  .brand small{color:var(--mut); letter-spacing:.18em; font-size:10px; display:block; margin-top:2px}
+
+  h2.section{font-size:12px; letter-spacing:.18em; color:var(--mut); text-transform:uppercase;
+    margin:22px 2px 10px; font-weight:700}
+
+  /* style toggle */
+  .styles{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .style{background:var(--panel); border:1px solid var(--line); border-radius:var(--rad);
+    padding:16px 14px; cursor:pointer; transition:.15s; position:relative; overflow:hidden}
+  .style .nm{font-weight:800; font-size:16px; letter-spacing:.04em}
+  .style .ds{color:var(--mut); font-size:12px; margin-top:4px; line-height:1.4}
+  .style[aria-pressed="true"]{border-color:var(--accent); background:linear-gradient(160deg,#1d1418,var(--panel))}
+  .style[aria-pressed="true"]::after{content:""; position:absolute; inset:0;
+    box-shadow:inset 0 0 0 1px var(--accent), 0 0 26px -8px var(--accent)}
+
+  /* chips */
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{background:var(--panel); border:1px solid var(--line); color:var(--ink);
+    padding:10px 14px; border-radius:999px; cursor:pointer; font-size:14px; font-weight:600;
+    transition:.12s; user-select:none}
+  .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+  .chip small{display:block; font-weight:500; font-size:10px; opacity:.7; letter-spacing:.04em}
+
+  /* toggle row */
+  .row{display:flex; align-items:center; justify-content:space-between; gap:14px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--rad); padding:14px 16px}
+  .row .lbl{font-weight:600}
+  .row .sub{color:var(--mut); font-size:12px; margin-top:2px}
+  .sw{width:52px;height:30px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);
+    position:relative; cursor:pointer; flex:none; transition:.15s}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+    background:#fff; transition:.18s}
+  .sw[aria-pressed="true"]{background:var(--accent); border-color:var(--accent)}
+  .sw[aria-pressed="true"]::after{left:25px}
+
+  /* buttons */
+  .btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    border:none; border-radius:14px; padding:17px; font-size:16px; font-weight:800; letter-spacing:.05em;
+    cursor:pointer; color:#fff; background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 10px 30px -12px var(--accent); transition:.12s}
+  .btn:active{transform:translateY(1px) scale(.995)}
+  .btn.ghost{background:var(--panel); color:var(--ink); border:1px solid var(--line); box-shadow:none}
+  .btn.sm{padding:13px; font-size:14px}
+  .btnrow{display:flex; gap:10px; margin-top:14px}
+
+  /* preview */
+  .meta{display:flex; gap:18px; margin:2px 2px 16px; flex-wrap:wrap}
+  .meta div b{font-size:22px; font-weight:800; display:block}
+  .meta div span{color:var(--mut); font-size:11px; letter-spacing:.1em; text-transform:uppercase}
+  .block{background:var(--panel); border:1px solid var(--line); border-radius:var(--rad);
+    margin-bottom:10px; overflow:hidden}
+  .block .bh{display:flex; align-items:center; gap:10px; padding:13px 15px; font-weight:700;
+    background:var(--panel2); border-bottom:1px solid var(--line)}
+  .block .bh .tag{font-size:10px; letter-spacing:.1em; padding:3px 8px; border-radius:6px;
+    text-transform:uppercase; font-weight:800}
+  .tag.tread{background:#2a1a1a; color:var(--accent2)}
+  .tag.floor{background:#16221c; color:var(--good)}
+  .tag.core{background:#221c12; color:var(--warn)}
+  .tag.warm,.tag.cool{background:#1a1a22; color:var(--mut)}
+  .block .bh .mins{margin-left:auto; color:var(--mut); font-size:12px; font-weight:600}
+  .ex{display:flex; align-items:center; gap:12px; padding:11px 15px; border-top:1px solid var(--line)}
+  .ex:first-of-type{border-top:none}
+  .ex .en{font-weight:600; flex:1}
+  .ex .ec{color:var(--mut); font-size:12px}
+  .ex .ed{color:var(--mut); font-size:13px; font-variant-numeric:tabular-nums; font-weight:700}
+
+  /* timer screen */
+  .tscreen{min-height:88vh; display:flex; flex-direction:column}
+  .tphase{text-align:center; letter-spacing:.2em; color:var(--mut); font-size:12px; font-weight:700;
+    text-transform:uppercase; margin-top:4px}
+  .progress{height:5px; background:var(--ring); border-radius:99px; margin:14px 0; overflow:hidden}
+  .progress i{display:block; height:100%; width:0; background:var(--accent); transition:width .25s}
+  .ringwrap{position:relative; flex:1; display:flex; align-items:center; justify-content:center; margin:6px 0}
+  .ringwrap svg{transform:rotate(-90deg); width:min(78vw,330px); height:min(78vw,330px)}
+  .rbg{fill:none; stroke:var(--ring); stroke-width:14}
+  .rfg{fill:none; stroke:var(--accent); stroke-width:14; stroke-linecap:round;
+    transition:stroke-dashoffset .25s linear, stroke .3s}
+  .rcenter{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 12%}
+  .rcenter .nm{font-size:clamp(22px,7vw,34px); font-weight:800; line-height:1.1}
+  .rcenter .cue{color:var(--mut); font-size:14px; margin-top:8px; line-height:1.35; min-height:1.2em}
+  .rcenter .clock{font-size:clamp(40px,14vw,64px); font-weight:800; font-variant-numeric:tabular-nums;
+    letter-spacing:.02em; margin-bottom:4px}
+  .rcenter .side{display:inline-block; margin-top:8px; font-size:11px; font-weight:800; letter-spacing:.12em;
+    color:var(--warn); border:1px solid #3a3320; padding:3px 9px; border-radius:99px}
+  .nextup{text-align:center; color:var(--mut); font-size:13px; margin:4px 0 14px; min-height:1.2em}
+  .nextup b{color:var(--ink)}
+  .controls{display:grid; grid-template-columns:1fr 1.4fr 1fr; gap:10px; align-items:center}
+  .cbtn{background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:14px;
+    padding:16px; font-size:15px; font-weight:700; cursor:pointer}
+  .cbtn.play{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border:none; font-size:17px}
+  .endbar{display:flex; justify-content:space-between; align-items:center; margin-top:14px; color:var(--mut); font-size:12px}
+  .endbar button{background:none; border:none; color:var(--mut); cursor:pointer; font-size:12px; text-decoration:underline}
+
+  /* rest visual state */
+  body.is-rest{--accent:#19c37d}
+  body.is-rest .rfg{stroke:#19c37d}
+  body.is-go{--accent:var(--accent)}
+
+  /* done */
+  .done{text-align:center; padding:30px 0}
+  .done .big{font-size:54px; margin-bottom:6px}
+  .done h2{font-size:24px; margin:0 0 6px}
+  .done p{color:var(--mut); margin:0 0 20px}
+  .foot{text-align:center; color:#44444e; font-size:11px; margin-top:26px; letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <span class="dot"></span>
+    <div><h1>ROADWORK</h1><small>TRAVEL HIIT — TREAD &amp; FLOOR</small></div>
+  </div>
+
+  <!-- ============ SETUP ============ -->
+  <section id="setup">
+    <h2 class="section">Class style</h2>
+    <div class="styles">
+      <div class="style" data-style="barrys" aria-pressed="true">
+        <div class="nm">BARRY'S</div>
+        <div class="ds">Run &amp; lift. Hard tread intervals, heavy floor supersets.</div>
+      </div>
+      <div class="style" data-style="reshape" aria-pressed="false">
+        <div class="nm">RESHAPE</div>
+        <div class="ds">1Rebel-style. Tighter intervals, more reps, less rest.</div>
+      </div>
+    </div>
+
+    <h2 class="section">Focus</h2>
+    <div class="chips" id="focus">
+      <div class="chip" data-focus="full" aria-pressed="true">Full Body</div>
+      <div class="chip" data-focus="arms_abs" aria-pressed="false">Arms &amp; Abs</div>
+      <div class="chip" data-focus="chest_back" aria-pressed="false">Chest &amp; Back</div>
+      <div class="chip" data-focus="legs_booty" aria-pressed="false">Legs &amp; Booty</div>
+      <div class="chip" data-focus="core" aria-pressed="false">Core</div>
+      <div class="chip" data-focus="run_lift" aria-pressed="false">Run &amp; Lift</div>
+    </div>
+
+    <h2 class="section">Duration</h2>
+    <div class="chips" id="dur">
+      <div class="chip" data-min="20" aria-pressed="false">20<small>MIN</small></div>
+      <div class="chip" data-min="30" aria-pressed="false">30<small>MIN</small></div>
+      <div class="chip" data-min="45" aria-pressed="true">45<small>MIN</small></div>
+      <div class="chip" data-min="60" aria-pressed="false">60<small>MIN</small></div>
+    </div>
+
+    <h2 class="section">Intensity</h2>
+    <div class="chips" id="intensity">
+      <div class="chip" data-int="chill" aria-pressed="false">Chill<small>LONGER REST</small></div>
+      <div class="chip" data-int="standard" aria-pressed="true">Standard<small>CLASSIC</small></div>
+      <div class="chip" data-int="savage" aria-pressed="false">Savage<small>MIN REST</small></div>
+    </div>
+
+    <h2 class="section">Kit</h2>
+    <div class="row" style="margin-bottom:10px">
+      <div>
+        <div class="lbl">I have a treadmill</div>
+        <div class="sub">Off = tread blocks become bodyweight cardio</div>
+      </div>
+      <div class="sw" id="sw-tread" aria-pressed="false" role="switch"></div>
+    </div>
+    <div class="row">
+      <div>
+        <div class="lbl">Voice coach</div>
+        <div class="sub">Calls out each move &amp; counts you down</div>
+      </div>
+      <div class="sw" id="sw-voice" aria-pressed="true" role="switch"></div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="generate">GENERATE WORKOUT</button>
+    </div>
+  </section>
+
+  <!-- ============ PREVIEW ============ -->
+  <section id="preview" class="hidden">
+    <div class="meta">
+      <div><b id="m-time">45</b><span>Minutes</span></div>
+      <div><b id="m-blocks">6</b><span>Blocks</span></div>
+      <div><b id="m-moves">0</b><span>Moves</span></div>
+      <div><b id="m-style">Barry's</b><span>Style</span></div>
+    </div>
+    <div id="blocks"></div>
+    <div class="btnrow">
+      <button class="btn ghost sm" id="back">&larr; Edit</button>
+      <button class="btn ghost sm" id="reshuffle">↻ Reshuffle</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="start">START WORKOUT</button>
+    </div>
+  </section>
+
+  <!-- ============ TIMER ============ -->
+  <section id="timer" class="hidden">
+    <div class="tscreen">
+      <div class="tphase" id="t-phase">Warm-Up</div>
+      <div class="progress"><i id="t-prog"></i></div>
+      <div class="ringwrap">
+        <svg viewBox="0 0 320 320">
+          <circle class="rbg" cx="160" cy="160" r="146"></circle>
+          <circle class="rfg" id="t-ring" cx="160" cy="160" r="146"></circle>
+        </svg>
+        <div class="rcenter">
+          <div class="clock" id="t-clock">0:30</div>
+          <div class="nm" id="t-name">Get Ready</div>
+          <div class="cue" id="t-cue"></div>
+          <div class="side hidden" id="t-side">SWITCH SIDES HALFWAY</div>
+        </div>
+      </div>
+      <div class="nextup" id="t-next"></div>
+      <div class="controls">
+        <button class="cbtn" id="c-prev">&#9198;</button>
+        <button class="cbtn play" id="c-play">PAUSE</button>
+        <button class="cbtn" id="c-skip">&#9197;</button>
+      </div>
+      <div class="endbar">
+        <span id="t-elapsed">0:00 elapsed</span>
+        <button id="c-end">End workout</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DONE ============ -->
+  <section id="done" class="hidden">
+    <div class="done">
+      <div class="big">🔥</div>
+      <h2>Done. That's the work.</h2>
+      <p id="d-sum">45 minutes &bull; Barry's &bull; Full Body</p>
+      <div class="btnrow"><button class="btn" id="d-again">SAME AGAIN</button></div>
+      <div class="btnrow"><button class="btn ghost sm" id="d-new">NEW WORKOUT</button></div>
+    </div>
+  </section>
+
+  <div class="foot">Works offline · keep this tab open during your set</div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   ROADWORK — exercise library
+   ============================================================ */
+const EX = {
+  legs: [
+    ["Goblet Squat","Chest up, drive through your heels"],
+    ["Reverse Lunge","Long step back, knee kisses the floor", true],
+    ["Bulgarian Split Squat","Back foot elevated, sink straight down", true],
+    ["Romanian Deadlift","Soft knees, push hips back, flat back"],
+    ["Sumo Squat","Toes out wide, squeeze glutes at the top"],
+    ["Curtsy Lunge","Cross behind, keep hips square", true],
+    ["Squat Pulse","Stay low — small, fast pulses"],
+    ["Lateral Lunge","Push hips back, weight stays loaded", true],
+    ["Single-Leg Glute Bridge","Hips high, control the lower", true],
+    ["Goblet Squat Hold","Thighs parallel — hold, don't move"],
+  ],
+  push: [
+    ["Floor Chest Press","Elbows at 45°, press to the ceiling"],
+    ["Floor Fly","Wide arc, soft elbows, squeeze in"],
+    ["Push-Up","Body in one line, chest to the floor"],
+    ["Dumbbell Pullover","Stretch overhead, pull over your chest"],
+    ["Close-Grip Press","Elbows tucked, squeeze the chest"],
+    ["Wide Push-Up","Hands wide, full range every rep"],
+  ],
+  pull: [
+    ["Bent-Over Row","Flat back, pull the weights to your ribs"],
+    ["Renegade Row","Plank tight, row to your hip", true],
+    ["Single-Arm Row","Drive the elbow back, squeeze", true],
+    ["Reverse Fly","Hinge over, squeeze shoulder blades"],
+    ["Upright Row","Elbows lead, pull up to your chin"],
+  ],
+  arms: [
+    ["Bicep Curl","Elbows pinned, slow on the way down"],
+    ["Hammer Curl","Thumbs up, no swinging"],
+    ["Overhead Tricep Extension","Elbows in, full stretch behind"],
+    ["Tricep Kickback","Lock the elbow, squeeze the back"],
+    ["Concentration Curl","Isolate it — zero swing", true],
+    ["Skull Crusher","Elbows still, lower to your forehead"],
+  ],
+  shoulders: [
+    ["Shoulder Press","Press straight up, ribs stay down"],
+    ["Lateral Raise","Lead with elbows, up to shoulder height"],
+    ["Front Raise","Controlled up, controlled down"],
+    ["Arnold Press","Rotate the palms as you press"],
+    ["Push Press","Small dip, drive it overhead"],
+  ],
+  core: [
+    ["Weighted Russian Twist","Feet up, rotate fully side to side"],
+    ["Weighted Sit-Up","Press the weight to the ceiling"],
+    ["Plank","Squeeze everything — don't let the hips sag"],
+    ["Bicycle Crunch","Elbow to opposite knee, slow"],
+    ["Leg Raise","Lower slow, keep your low back down"],
+    ["Flutter Kicks","Small fast kicks, core braced"],
+    ["Dead Bug","Opposite arm and leg, nice and slow"],
+    ["Plank Shoulder Taps","Hips still, tap opposite shoulders"],
+    ["V-Up","Reach your hands to your toes"],
+    ["Side Plank","Hips stacked and lifted high", true],
+    ["Hollow Hold","Low back pressed down, arms overhead"],
+  ],
+  cardio: [
+    ["High Knees","Knees to hip height — fast feet"],
+    ["Burpees","Chest to floor, then jump tall"],
+    ["Jumping Jacks","Big and fast, full extension"],
+    ["Mountain Climbers","Drive the knees, hips low"],
+    ["Squat Jumps","Sink, explode up, land soft"],
+    ["Skater Hops","Bound side to side, stick the landing"],
+    ["Butt Kicks","Heels to glutes, quick turnover"],
+    ["Plank Jacks","Plank tight, jump the feet wide"],
+    ["Fast Feet","Stay low, feet as fast as you can"],
+    ["Tuck Jumps","Knees to chest, soft landing"],
+  ],
+};
+const PACE = {
+  "Base Jog":"Comfortable working jog — settle in",
+  "Run":"Moderate run, you're working now",
+  "Push":"Base pace +2 — uncomfortable but holding",
+  "Sprint":"All out — empty the tank",
+  "Incline Push":"Crank the incline, power up the hill",
+};
+const HARD = ["Run","Push","Sprint","Incline Push"];
+
+const FOCUS = {
+  full:       {label:"Full Body",   groups:["legs","push","pull","arms","shoulders","core"]},
+  arms_abs:   {label:"Arms & Abs",  groups:["arms","shoulders","core"]},
+  chest_back: {label:"Chest & Back",groups:["push","pull","core"]},
+  legs_booty: {label:"Legs & Booty",groups:["legs","legs","core"]},
+  core:       {label:"Core",        groups:["core"]},
+  run_lift:   {label:"Run & Lift",  groups:["legs","push","pull"]},
+};
+
+/* intensity × style timing presets (seconds) */
+function presets(style, intensity){
+  const base = {
+    chill:    {work:30, rest:20, hard:30, easy:40, floorN:5, treadN:5},
+    standard: {work:40, rest:15, hard:35, easy:30, floorN:6, treadN:6},
+    savage:   {work:45, rest:10, hard:40, easy:22, floorN:6, treadN:7},
+  }[intensity];
+  if(style === "reshape"){ // tighter, more reps, less rest
+    return {...base, rest:Math.max(8,base.rest-5), easy:Math.max(18,base.easy-6),
+            work:base.work, floorN:base.floorN+1};
+  }
+  return base;
+}
+
+/* ============================================================
+   Generator
+   ============================================================ */
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function mkEx(arr){return {name:arr[0], cue:arr[1], uni:!!arr[2]};}
+
+function treadBlock(label, P, treadmill){
+  const steps=[]; const pool = shuffle(EX.cardio);
+  for(let i=0;i<P.treadN;i++){
+    if(treadmill){
+      const pace = HARD[i % HARD.length];
+      steps.push({phase:label, kind:"tread", name:pace, cue:PACE[pace], dur:P.hard});
+    }else{
+      const ex = pool[i % pool.length];
+      steps.push({phase:label, kind:"cardio", name:ex[0], cue:ex[1], dur:P.hard});
+    }
+    if(i<P.treadN-1) steps.push({phase:label, kind:"rest", name:"Recovery", cue:"Walk it back, slow the breath", dur:P.easy});
+  }
+  return steps;
+}
+function floorBlock(label, groups, P, n){
+  n = n || P.floorN;
+  const pool = shuffle(groups.flatMap(g=>EX[g].map(mkEx)));
+  // de-dupe by name while keeping order
+  const seen=new Set(), uniq=[];
+  for(const e of pool){ if(!seen.has(e.name)){seen.add(e.name); uniq.push(e);} }
+  const steps=[];
+  for(let i=0;i<n;i++){
+    const ex = uniq[i % uniq.length];
+    steps.push({phase:label, kind:"work", name:ex.name, cue:ex.cue, dur:P.work, side:ex.uni});
+    if(i<n-1) steps.push({phase:label, kind:"rest", name:"Rest", cue:"Grab water, reset", dur:P.rest});
+  }
+  return steps;
+}
+
+const WARM = [
+  ["Jog on the Spot","Loosen up, get the blood going"],
+  ["Arm Circles","Big circles, both directions"],
+  ["Bodyweight Squats","Full depth, open the hips"],
+  ["Walkouts","Hands walk out to plank and back"],
+  ["World's Greatest Stretch","Lunge, reach, rotate", true],
+];
+const COOL = [
+  ["Forward Fold","Let the head hang, breathe out"],
+  ["Quad Stretch","Heel to glute, stand tall", true],
+  ["Chest Opener","Hands behind, open across the chest"],
+  ["Child's Pose","Sink back, long deep breaths"],
+];
+
+function generate(cfg){
+  const P = presets(cfg.style, cfg.intensity);
+  const F = FOCUS[cfg.focus];
+  const steps=[];
+  const sum = s=>s.reduce((t,x)=>t+x.dur,0);
+
+  // warm-up (~2.5 min)
+  WARM.forEach(w=>steps.push({phase:"Warm-Up", kind:"warm", name:w[0], cue:w[1], dur:30}));
+
+  const coolDur = COOL.length*30;
+  const finisherDur = P.work*4 + P.rest*3; // core finisher
+  const budget = cfg.min*60 - coolDur - finisherDur;
+
+  let tread=1, floor=1;
+  while(sum(steps) < budget - 60){            // leave a little headroom
+    const tb = treadBlock(`Tread ${tread}`, P, cfg.treadmill);
+    if(sum(steps)+sum(tb) > budget) break;
+    steps.push(...tb); tread++;
+    const fb = floorBlock(`Floor ${floor}`, F.groups, P);
+    if(sum(steps)+sum(fb) > budget){ // trim last floor block to fit
+      let acc=sum(steps); for(const s of fb){ if(acc+s.dur>budget) break; steps.push(s); acc+=s.dur; }
+      break;
+    }
+    steps.push(...fb); floor++;
+    if(tread>6) break; // safety
+  }
+  // guarantee at least one of each
+  if(tread===1){ steps.push(...treadBlock("Tread 1", P, cfg.treadmill)); }
+  if(floor===1){ steps.push(...floorBlock("Floor 1", F.groups, P)); }
+
+  // core finisher (skip the dedicated one if focus already core-only & short)
+  steps.push(...floorBlock("Core Finisher", ["core","core"], P, 4));
+
+  // cooldown
+  COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:30}));
+
+  // intro "get ready"
+  steps.unshift({phase:"Warm-Up", kind:"prep", name:"Get Ready", cue:"On the mat — here we go", dur:10});
+
+  // attach next-work pointers for rest announcements
+  for(let i=0;i<steps.length;i++){
+    if(steps[i].kind==="rest"||steps[i].kind==="prep"){
+      const nx = steps.slice(i+1).find(s=>s.kind!=="rest");
+      steps[i].nextName = nx ? nx.name : null;
+    }
+  }
+  return steps;
+}
+
+/* ============================================================
+   State + setup wiring
+   ============================================================ */
+const cfg = { style:"barrys", focus:"full", min:45, intensity:"standard", treadmill:false, voice:true };
+let WORKOUT = [];
+
+function pickGroup(sel, key, val){
+  sel.querySelectorAll("[aria-pressed]").forEach(el=>{
+    const on = el.dataset[key]===String(val);
+    el.setAttribute("aria-pressed", on);
+  });
+}
+document.querySelector(".styles").addEventListener("click",e=>{
+  const el=e.target.closest(".style"); if(!el)return;
+  cfg.style=el.dataset.style;
+  document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed", s===el));
+});
+document.getElementById("focus").addEventListener("click",e=>{
+  const el=e.target.closest(".chip"); if(!el)return; cfg.focus=el.dataset.focus; pickGroup(focusEl,"focus",cfg.focus);
+});
+document.getElementById("dur").addEventListener("click",e=>{
+  const el=e.target.closest(".chip"); if(!el)return; cfg.min=+el.dataset.min; pickGroup(durEl,"min",cfg.min);
+});
+document.getElementById("intensity").addEventListener("click",e=>{
+  const el=e.target.closest(".chip"); if(!el)return; cfg.intensity=el.dataset.int; pickGroup(intEl,"int",cfg.intensity);
+});
+const focusEl=document.getElementById("focus"), durEl=document.getElementById("dur"), intEl=document.getElementById("intensity");
+
+function bindSwitch(id, key){
+  const sw=document.getElementById(id);
+  sw.addEventListener("click",()=>{ cfg[key]=!cfg[key]; sw.setAttribute("aria-pressed", cfg[key]); });
+}
+bindSwitch("sw-tread","treadmill"); bindSwitch("sw-voice","voice");
+
+/* restore last settings */
+try{
+  const saved=JSON.parse(localStorage.getItem("roadwork")||"null");
+  if(saved){ Object.assign(cfg,saved);
+    document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed",s.dataset.style===cfg.style));
+    pickGroup(focusEl,"focus",cfg.focus); pickGroup(durEl,"min",cfg.min); pickGroup(intEl,"int",cfg.intensity);
+    document.getElementById("sw-tread").setAttribute("aria-pressed",cfg.treadmill);
+    document.getElementById("sw-voice").setAttribute("aria-pressed",cfg.voice);
+  }
+}catch(e){}
+
+/* ============================================================
+   Screens
+   ============================================================ */
+const screens={setup:byId("setup"),preview:byId("preview"),timer:byId("timer"),done:byId("done")};
+function byId(i){return document.getElementById(i);}
+function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); window.scrollTo(0,0); }
+
+const fmt = s=>{s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
+const tagFor = phase => phase.startsWith("Tread")?"tread":phase.startsWith("Floor")?"floor":
+  phase.startsWith("Core")?"core":phase.startsWith("Warm")?"warm":"cool";
+
+function buildPreview(){
+  const total = WORKOUT.reduce((t,s)=>t+s.dur,0);
+  byId("m-time").textContent = Math.round(total/60);
+  byId("m-style").textContent = cfg.style==="barrys"?"Barry's":"Reshape";
+  // group by phase
+  const groups=[]; let cur=null;
+  WORKOUT.forEach(s=>{ if(!cur||cur.phase!==s.phase){cur={phase:s.phase,steps:[]};groups.push(cur);} cur.steps.push(s); });
+  const blocks = groups.filter(g=>g.steps.some(s=>s.kind!=="rest"));
+  byId("m-blocks").textContent = blocks.filter(g=>!/Warm|Cool/.test(g.phase)).length;
+  byId("m-moves").textContent = WORKOUT.filter(s=>["work","tread","cardio","warm","cool"].includes(s.kind)).length;
+
+  const host=byId("blocks"); host.innerHTML="";
+  groups.forEach(g=>{
+    const mins=Math.round(g.steps.reduce((t,s)=>t+s.dur,0)/60);
+    const tag=tagFor(g.phase);
+    const label=tag==="tread"?(cfg.treadmill?"Treadmill":"Cardio"):tag==="floor"?"Floor":
+      tag==="core"?"Core":tag==="warm"?"Warm-Up":"Cool-Down";
+    const moves=g.steps.filter(s=>s.kind!=="rest");
+    const rows=moves.map(s=>`<div class="ex">
+        <div class="en">${s.name}${s.side?' <span class="ec">· both sides</span>':''}</div>
+        <div class="ed">${s.dur}s</div></div>`).join("");
+    const div=document.createElement("div"); div.className="block";
+    div.innerHTML=`<div class="bh"><span class="tag ${tag}">${label}</span>${g.phase}
+        <span class="mins">${mins} min</span></div>${rows}`;
+    host.appendChild(div);
+  });
+}
+
+byId("generate").addEventListener("click",()=>{
+  localStorage.setItem("roadwork", JSON.stringify(cfg));
+  WORKOUT = generate(cfg);
+  buildPreview(); show("preview");
+});
+byId("reshuffle").addEventListener("click",()=>{ WORKOUT=generate(cfg); buildPreview(); });
+byId("back").addEventListener("click",()=>show("setup"));
+byId("start").addEventListener("click",startTimer);
+byId("d-again").addEventListener("click",()=>{ WORKOUT=generate(cfg); buildPreview(); startTimer(); });
+byId("d-new").addEventListener("click",()=>show("setup"));
+
+/* ============================================================
+   Audio cues (WebAudio) + voice
+   ============================================================ */
+let actx=null;
+function beep(freq=880,dur=0.12,vol=0.25){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.frequency.value=freq; o.type="sine"; o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(vol, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+    o.start(); o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+function say(text){
+  if(!cfg.voice || !("speechSynthesis" in window)) return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text);
+    u.rate=1.05; u.pitch=1; u.volume=1; speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ============================================================
+   Timer engine
+   ============================================================ */
+const RAD=146, CIRC=2*Math.PI*RAD;
+const ring=byId("t-ring"); ring.style.strokeDasharray=CIRC;
+let T={idx:0, remain:0, dur:0, running:false, timer:0, endAt:0, lastSec:-1, switched:false, total:0, before:0};
+let wakeLock=null;
+
+function totalDur(){return WORKOUT.reduce((t,s)=>t+s.dur,0);}
+function durBefore(i){let t=0;for(let k=0;k<i;k++)t+=WORKOUT[k].dur;return t;}
+
+async function reqWake(){ try{ if("wakeLock" in navigator) wakeLock=await navigator.wakeLock.request("screen"); }catch(e){} }
+function relWake(){ try{ wakeLock&&wakeLock.release(); wakeLock=null; }catch(e){} }
+
+function startTimer(){
+  T.idx=0; T.total=totalDur(); show("timer");
+  beep(660,0.05,0.0001); // unlock audio on user gesture
+  reqWake();
+  T.running=true; byId("c-play").textContent="PAUSE";
+  loadStep(0); // starts ticking because running
+}
+
+/* timestamp-driven tick: keeps correct time even if the tab is backgrounded
+   (requestAnimationFrame fully stops when hidden; setInterval keeps firing) */
+function clearTick(){ if(T.timer){ clearInterval(T.timer); T.timer=0; } }
+function startTick(){
+  clearTick();
+  T.endAt = performance.now() + T.remain*1000;
+  T.timer = setInterval(tick, 200);
+}
+
+function loadStep(i){
+  const s=WORKOUT[i]; if(!s) return finishWorkout();
+  T.idx=i; T.dur=s.dur; T.remain=s.dur; T.lastSec=-1; T.switched=false; T.before=durBefore(i);
+  const rest = s.kind==="rest";
+  document.body.classList.toggle("is-rest", rest);
+  byId("t-phase").textContent=s.phase;
+  byId("t-name").textContent=s.name;
+  byId("t-cue").textContent=s.cue||"";
+  byId("t-side").classList.toggle("hidden", !s.side);
+  // next-up line
+  const nextLine=byId("t-next");
+  if(rest && s.nextName){ nextLine.innerHTML="Next: <b>"+s.nextName+"</b>"; }
+  else{
+    const nx=WORKOUT.slice(i+1).find(x=>x.kind!=="rest");
+    nextLine.innerHTML = nx? "Up next: <b>"+nx.name+"</b>" : "Last one — finish strong";
+  }
+  renderClock();
+  // voice
+  if(rest){ say(s.nextName? ("Rest. Next, "+s.nextName):"Rest"); }
+  else if(s.kind==="prep"){ say("Get ready"); }
+  else{ say(s.name + (s.side? ", both sides":"")); }
+  if(s.kind!=="rest" && s.kind!=="prep") beep(900,0.12,0.3);
+  if(T.running) startTick();
+}
+
+function renderClock(){
+  byId("t-clock").textContent=fmt(T.remain);
+  const frac=T.dur>0?(T.remain/T.dur):0;
+  ring.style.strokeDashoffset = CIRC*(1-frac);
+  const elapsed=T.before + (T.dur-T.remain);
+  byId("t-prog").style.width = (100*elapsed/T.total)+"%";
+  byId("t-elapsed").textContent = fmt(elapsed)+" / "+fmt(T.total);
+}
+
+function tick(){
+  if(!T.running) return;
+  const s=WORKOUT[T.idx];
+  T.remain = (T.endAt - performance.now())/1000;
+  if(T.remain<0) T.remain=0;
+
+  // switch-sides cue at halfway for unilateral
+  if(s && s.side && !T.switched && T.remain<=T.dur/2){
+    T.switched=true; beep(700,0.1,0.25); say("Switch sides");
+  }
+  // 3-2-1 countdown beeps
+  const sec=Math.ceil(T.remain);
+  if(sec!==T.lastSec){
+    T.lastSec=sec;
+    if(sec<=3 && sec>=1) beep(760,0.08,0.22);
+  }
+  if(T.remain<=0){
+    beep(1180,0.22,0.32);
+    clearTick();
+    return loadStep(T.idx+1);
+  }
+  renderClock();
+}
+
+byId("c-play").addEventListener("click",()=>{
+  T.running=!T.running;
+  byId("c-play").textContent=T.running?"PAUSE":"RESUME";
+  if(T.running){ reqWake(); startTick(); }
+  else{ clearTick(); relWake(); if("speechSynthesis"in window) speechSynthesis.cancel(); }
+});
+byId("c-skip").addEventListener("click",()=>{ clearTick(); loadStep(T.idx+1); });
+byId("c-prev").addEventListener("click",()=>{
+  clearTick();
+  // restart current if >2s in, else go back one
+  const goto = (T.dur-T.remain>2)?T.idx:Math.max(0,T.idx-1);
+  loadStep(goto);
+});
+byId("c-end").addEventListener("click",()=>{ if(confirm("End this workout?")) finishWorkout(); });
+
+function finishWorkout(){
+  T.running=false; clearTick(); relWake();
+  if("speechSynthesis"in window) speechSynthesis.cancel();
+  document.body.classList.remove("is-rest");
+  beep(880,0.15,0.3); setTimeout(()=>beep(1180,0.3,0.3),160);
+  say("Workout complete. Great work.");
+  byId("d-sum").textContent = Math.round(totalDur()/60)+" minutes · "+
+    (cfg.style==="barrys"?"Barry's":"Reshape")+" · "+FOCUS[cfg.focus].label;
+  show("done");
+}
+
+/* re-acquire wake lock on tab refocus */
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&T.running) reqWake(); });
+</script>
+</body>
+</html>
