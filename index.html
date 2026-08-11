@@ -600,12 +600,12 @@ byId("d-new").addEventListener("click",()=>show("setup"));
    Audio cues (WebAudio) + voice
    ============================================================ */
 let actx=null;
-/* Tell iOS these are short prompts so background music (Spotify, etc.) DUCKS
-   instead of pausing when the coach speaks or a beep fires. Safari 16.4+; a
-   no-op elsewhere. "transient" = dip other audio then restore; "ambient" would
-   mix at full volume. Must run from a user gesture with audio unlocked. */
+/* Tell iOS to mix our sounds with background music (Spotify, etc.) instead of
+   pausing it. Safari 16.4+; a no-op elsewhere. "ambient" = other audio keeps
+   playing at FULL volume, our coach/beeps play on top; "transient" would dip
+   (duck) the music. Must run from a user gesture with audio unlocked. */
 function setAudioSession(){
-  try{ if("audioSession" in navigator) navigator.audioSession.type = "transient"; }catch(e){}
+  try{ if("audioSession" in navigator) navigator.audioSession.type = "ambient"; }catch(e){}
 }
 function beep(freq=880,dur=0.12,vol=0.25){
   try{
