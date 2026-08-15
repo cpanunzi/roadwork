@@ -191,6 +191,13 @@
       <div class="chip" data-int="savage" aria-pressed="false">Savage<small>MIN REST</small></div>
     </div>
 
+    <h2 class="section">Level</h2>
+    <div class="chips" id="level">
+      <div class="chip" data-level="beg" aria-pressed="false">Beginner<small>LIGHT / LEARN FORM</small></div>
+      <div class="chip" data-level="int" aria-pressed="true">Intermediate<small>MODERATE–HEAVY</small></div>
+      <div class="chip" data-level="adv" aria-pressed="false">Advanced<small>HEAVY</small></div>
+    </div>
+
     <h2 class="section">Kit</h2>
     <div class="row" style="margin-bottom:10px">
       <div>
@@ -386,7 +393,7 @@ function presets(style, intensity){
 const rnd = a => a[Math.floor(Math.random()*a.length)];
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-function mkEx(arr){return {name:arr[0], cue:arr[1], uni:!!arr[2]};}
+function mkEx(arr){return {name:arr[0], cue:arr[1], uni:!!arr[2], reps:arr[3], kind:arr[4]};}
 
 function treadBlock(label, P, treadmill){
   const steps=[]; const pool = shuffle(EX.cardio);
@@ -435,42 +442,53 @@ const COOL = [
    BOOTY BURN — glute-only library + generator
    Assumes resistance bands + a decent gym (weights/bench available).
    ============================================================ */
+/* Exercise rows: [name, cue, unilateral?, repTarget, loadKind]
+   loadKind → weight guidance by level: comp = heavy compound (scales w/ level),
+   iso = weighted isolation (stay lighter), kb = kettlebell (kg targets),
+   band = resistance band, bw = bodyweight. All hip-dominant — quads stay out of it. */
 const GLUTES = {
   weighted: [
-    ["Barbell Hip Thrust","Shoulders on the bench, drive hips up, squeeze hard"],
-    ["Dumbbell Glute Bridge","Weight on the hips, bridge up, pause at the top"],
-    ["Romanian Deadlift","Soft knees, hips back, feel the hamstrings load"],
-    ["Bulgarian Split Squat","Back foot up, sink straight down", true],
-    ["Sumo Deadlift","Wide stance, toes out, drive through the heels"],
-    ["Weighted Step-Up","Drive through the top foot, stand tall", true],
-    ["Goblet Sumo Squat","Toes wide, sink low, squeeze glutes at the top"],
-    ["Single-Leg RDL","Hinge over one leg, flat back, slow control", true],
-    ["Weighted Curtsy Lunge","Cross behind, keep the hips square", true],
-    ["Reverse Lunge","Long step back, power up through the front heel", true],
-    ["Cable/Band Pull-Through","Hinge, then snap the hips forward, squeeze"],
-    ["Kettlebell Swing","Hips drive it — glutes snap, arms just guide"],
+    ["Barbell Hip Thrust","Shoulders on the bench, chin tucked, drive hips up & squeeze hard", false, "8–12", "comp"],
+    ["Barbell Glute Bridge","On the floor, bar over the hips, bridge up and pause at the top", false, "10–12", "comp"],
+    ["Romanian Deadlift","Soft knees, push the hips back, flat back — feel the stretch", false, "8–12", "comp"],
+    ["Sumo Deadlift","Wide stance, toes out, drive the floor away through the heels", false, "8–12", "comp"],
+    ["Single-Leg Hip Thrust","One foot planted, weight on the hip, drive up level", true, "10–12 / side", "iso"],
+    ["Single-Leg RDL","Hinge over one leg, flat back, slow control down", true, "10–12 / side", "iso"],
+    ["B-Stance RDL","Back toe as a kickstand, load the front glute, hips back", true, "10–12 / side", "iso"],
+    ["45° Back Extension","Round the upper back, drive with the glutes not the low back", false, "12–15", "iso"],
+    ["Cable/Band Pull-Through","Hinge, then snap the hips forward and squeeze", false, "12–15", "iso"],
+    ["Cable Glute Kickback","Ankle strap, drive the leg straight back, squeeze, control", true, "12–15 / side", "iso"],
+    ["Kettlebell Swing","Hips snap it — glutes drive, arms just guide the bell", false, "15–20", "kb"],
   ],
   band: [
-    ["Banded Lateral Walk","Band above the knees, stay low, small steps"],
-    ["Banded Glute Bridge","Press the knees out hard at the top"],
-    ["Banded Kickback","On all fours, drive the heel to the ceiling", true],
-    ["Banded Clamshell","Side-lying, open the knee, hips stacked", true],
-    ["Banded Fire Hydrant","Knee out to the side, hips square", true],
-    ["Banded Monster Walk","Wide stance, walk forward then back"],
-    ["Banded Squat","Push the knees out against the band the whole way"],
-    ["Banded Standing Kickback","Stand tall, drive one leg straight back", true],
-    ["Banded Hip Abduction","Seated or standing, press out and control back", true],
+    ["Banded Hip Thrust","Band above the knees, thrust up and press the knees out", false, "20–25", "band"],
+    ["Banded Glute Bridge","Press the knees out hard against the band at the top", false, "20–25", "band"],
+    ["Banded Lateral Walk","Band above knees, stay low, small controlled steps", true, "12–15 / way", "band"],
+    ["Banded Kickback","On all fours, drive the heel to the ceiling", true, "15 / side", "band"],
+    ["Banded Clamshell","Side-lying, open the knee, keep the hips stacked", true, "15–20 / side", "band"],
+    ["Banded Fire Hydrant","Knee out to the side, hips square to the floor", true, "15 / side", "band"],
+    ["Banded Monster Walk","Wide stance, walk forward then back", false, "12–15 / way", "band"],
+    ["Banded Standing Kickback","Stand tall, drive one leg straight back, squeeze", true, "15 / side", "band"],
+    ["Banded Hip Abduction","Seated or standing, press out then control back in", true, "15–20 / side", "band"],
   ],
   burnout: [
-    ["Glute Bridge Pulse","Hold at the top — small, fast pulses"],
-    ["Donkey Kick Pulse","Heel to the ceiling, tiny pulses", true],
-    ["Frog Pump","Heels together, knees wide, pump the hips up"],
-    ["Fire Hydrant Pulse","Knee out to the side, pulse at the top", true],
-    ["Squat Pulse Hold","Sink low and pulse an inch — stay down"],
-    ["Single-Leg Glute Bridge","One leg, hips high, control the lower", true],
-    ["Bridge March","Hips up the whole time, march the knees slow"],
+    ["Glute Bridge Pulse","Hold at the top — small, fast pulses, keep tension", false, "25–30", "bw"],
+    ["Frog Pump","Heels together, knees wide, pump the hips up hard", false, "25–35", "bw"],
+    ["Donkey Kick Pulse","Heel to the ceiling, tiny pulses at the top", true, "20–25 / side", "bw"],
+    ["Fire Hydrant Pulse","Knee out to the side, pulse at the top", true, "20 / side", "bw"],
+    ["Single-Leg Glute Bridge","One leg, hips high, control the lower", true, "15–20 / side", "bw"],
+    ["Bridge March","Hips up the whole time, march the knees slow", false, "20 total", "bw"],
   ],
 };
+/* weight guidance shown per move, by kind × chosen level */
+const LOAD_GUIDE = {
+  comp: {beg:"light · own the squeeze", int:"moderate–heavy · RPE 8", adv:"heavy · 2–3 in reserve"},
+  iso:  {beg:"light · controlled",      int:"light–moderate · strict", adv:"moderate · strict form"},
+  kb:   {beg:"8–12 kg", int:"16–20 kg", adv:"24 kg+"},
+  band: {beg:"light band", int:"medium band", adv:"heavy band"},
+  bw:   {beg:"bodyweight", int:"bodyweight", adv:"+ band / light DB"},
+};
+function speakReps(r){ return String(r).replace("–"," to ").replace("/ side"," each side").replace("/ way"," each way").replace(" total","").replace(/\s+/g," ").trim(); }
 const GLUTE_WARM = [
   ["Glute Bridge","Slow reps, squeeze hard at the top"],
   ["Banded Lateral Walk","Wake up the side glutes, stay low"],
@@ -495,7 +513,7 @@ function bootyBlock(label, pool, start, n, work, rest, restName, restCue){
   const steps=[]; let i=start;
   for(let k=0;k<n;k++){
     const ex=pool[i % pool.length]; i++;
-    steps.push({phase:label, kind:"work", name:ex.name, cue:ex.cue, dur:work, side:ex.uni});
+    steps.push({phase:label, kind:"work", name:ex.name, cue:ex.cue, dur:work, side:ex.uni, reps:ex.reps, load:ex.kind});
     if(k<n-1) steps.push({phase:label, kind:"rest", name:restName||"Rest",
       cue:restCue||"Reset, breathe, squeeze ready", dur:rest});
   }
@@ -658,7 +676,7 @@ function generate(cfg){
 /* ============================================================
    State + setup wiring
    ============================================================ */
-const cfg = { style:"barrys", focus:"full", min:45, intensity:"standard", treadmill:false, voice:true };
+const cfg = { style:"barrys", focus:"full", min:45, intensity:"standard", level:"int", treadmill:false, voice:true };
 let WORKOUT = [];
 
 function pickGroup(sel, key, val){
@@ -682,7 +700,11 @@ document.getElementById("dur").addEventListener("click",e=>{
 document.getElementById("intensity").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.intensity=el.dataset.int; pickGroup(intEl,"int",cfg.intensity);
 });
-const focusEl=document.getElementById("focus"), durEl=document.getElementById("dur"), intEl=document.getElementById("intensity");
+document.getElementById("level").addEventListener("click",e=>{
+  const el=e.target.closest(".chip"); if(!el)return; cfg.level=el.dataset.level; pickGroup(levelEl,"level",cfg.level);
+});
+const focusEl=document.getElementById("focus"), durEl=document.getElementById("dur"),
+      intEl=document.getElementById("intensity"), levelEl=document.getElementById("level");
 
 function bindSwitch(id, key){
   const sw=document.getElementById(id);
@@ -696,6 +718,7 @@ try{
   if(saved){ Object.assign(cfg,saved);
     document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed",s.dataset.style===cfg.style));
     pickGroup(focusEl,"focus",cfg.focus); pickGroup(durEl,"min",cfg.min); pickGroup(intEl,"int",cfg.intensity);
+    pickGroup(levelEl,"level",cfg.level);
     document.getElementById("sw-tread").setAttribute("aria-pressed",cfg.treadmill);
     document.getElementById("sw-voice").setAttribute("aria-pressed",cfg.voice);
   }
@@ -739,7 +762,7 @@ function buildPreview(){
     const {tag,label}=blockMeta(g.phase, cfg);
     const moves=g.steps.filter(s=>s.kind!=="rest"&&s.kind!=="move");
     const rows=moves.map(s=>`<div class="ex">
-        <div class="en">${s.name}${s.side?' <span class="ec">· both sides</span>':''}</div>
+        <div class="en">${s.name}${s.reps?` <span class="ec">· ${s.reps} reps</span>`:(s.side?' <span class="ec">· both sides</span>':'')}</div>
         <div class="ed">${s.dur}s</div></div>`).join("");
     const div=document.createElement("div"); div.className="block";
     div.innerHTML=`<div class="bh"><span class="tag ${tag}">${label}</span>${g.phase}
@@ -830,7 +853,14 @@ function loadStep(i){
   document.body.classList.toggle("is-move", move);
   byId("t-phase").textContent=s.phase;
   byId("t-name").textContent=s.name;
-  byId("t-cue").textContent=s.cue||"";
+  // cue + rep target (+ per-level weight guidance for glute moves)
+  let cueHTML = s.cue||"";
+  if(s.kind==="work" && s.reps){
+    cueHTML += '<br><b style="color:var(--ink)">Aim '+s.reps+'</b>';
+    const lg = s.load && LOAD_GUIDE[s.load] && LOAD_GUIDE[s.load][cfg.level];
+    if(lg) cueHTML += ' <span style="color:var(--mut)">· '+lg+'</span>';
+  }
+  byId("t-cue").innerHTML = cueHTML;
   byId("t-side").classList.toggle("hidden", !s.side);
   // next-up line
   const nextLine=byId("t-next");
@@ -844,7 +874,7 @@ function loadStep(i){
   if(rest){ const w=s.name||"Rest"; say(s.nextName? (w+". Next, "+s.nextName):w); }
   else if(move){ say(s.name.replace("To the","Move to the") + (s.nextName? (". Next, "+s.nextName):"")); }
   else if(s.kind==="prep"){ say("Get ready"); }
-  else{ say(s.name + (s.side? ", both sides":"")); }
+  else{ say(s.name + (s.reps? (", aim "+speakReps(s.reps)):"") + (s.side? ", both sides":"")); }
   if(move){ beep(520,0.14,0.22); }
   else if(s.kind!=="rest" && s.kind!=="prep"){ beep(900,0.12,0.3); }
   if(T.running) startTick();
