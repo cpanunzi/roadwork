@@ -171,6 +171,10 @@
         <div class="nm">BOOTY BURN 🍑</div>
         <div class="ds">Glutes only — bands + weights. Bridges, hip thrusts, kickbacks &amp; a burnout finisher. No running. Defaults to 30 min.</div>
       </div>
+      <div class="style" data-style="arms" aria-pressed="false" style="grid-column:1/-1">
+        <div class="nm">ARM SCULPT 💪</div>
+        <div class="ds">Slim, toned arms — light ~2 kg, high-rep, back-to-back circuits. Biceps, triceps &amp; shoulders. Not bulky. Defaults to 20 min.</div>
+      </div>
     </div>
 
     <h2 class="section">Focus</h2>
@@ -499,6 +503,7 @@ const LOAD_GUIDE = {
   iso:  {beg:"light · controlled",      int:"light–moderate · strict", adv:"moderate · strict form"},
   kb:   {beg:"8–12 kg", int:"16–20 kg", adv:"24 kg+"},
   band: {beg:"light band", int:"medium band", adv:"heavy band"},
+  light:{beg:"1–2 kg", int:"2 kg", adv:"2–3 kg"},
   bw:   {beg:"bodyweight", int:"bodyweight", adv:"+ band / light DB"},
 };
 function speakReps(r){ return String(r).replace("–"," to ").replace("/ side"," each side").replace("/ way"," each way").replace(" total","").replace(/\s+/g," ").trim(); }
@@ -616,6 +621,123 @@ function generateBooty(cfg){
   return steps;
 }
 
+/* ============================================================
+   ARM SCULPT — light-weight, high-rep, back-to-back circuits
+   Goal: slim, toned, defined arms (not bulky). ~2 kg + bodyweight.
+   All time-based (continuous flow), balanced across bi / tri / delts / back.
+   ============================================================ */
+const ARMS = {
+  biceps: [
+    ["Bicep Curl","Elbows pinned to your sides, curl up, slow on the way down", false, "15–20", "light"],
+    ["Hammer Curl","Palms facing in, thumbs up, no swinging", false, "15–20", "light"],
+    ["Cross-Body Hammer Curl","Curl across toward the opposite shoulder", true, "12–15 / side", "light"],
+    ["Wide Curl","Elbows out slightly, curl wide and squeeze", false, "15–20", "light"],
+    ["Zottman Curl","Curl up palms-up, rotate, lower palms-down", false, "12–15", "light"],
+  ],
+  triceps: [
+    ["Overhead Tricep Extension","Elbows in tight by your ears, full stretch behind", false, "15–20", "light"],
+    ["Tricep Kickback","Hinge over, lock the elbow, squeeze straight back", true, "15 / side", "light"],
+    ["Skull Crusher","Lie back, elbows still, lower toward your forehead", false, "15–20", "light"],
+    ["Bench Tricep Dips","Hands on a chair/bench, elbows back, dip & press up", false, "12–15", "bw"],
+    ["Close-Grip Push-Up","Hands under shoulders, elbows brush the ribs (knees ok)", false, "8–12", "bw"],
+  ],
+  shoulders: [
+    ["Lateral Raise","Lead with the elbows, up to shoulder height, control down", false, "15–20", "light"],
+    ["Front Raise","Raise to eye level, controlled, no swing", false, "12–15", "light"],
+    ["Shoulder Press","Press straight overhead, keep the ribs down", false, "12–15", "light"],
+    ["Arnold Press","Rotate the palms open as you press up", false, "12–15", "light"],
+    ["Upright Row","Elbows lead, pull up to your chest", false, "12–15", "light"],
+    ["Rear Delt Fly","Hinge over, wide arc, squeeze the shoulder blades", false, "15–20", "light"],
+  ],
+  back: [
+    ["Bent-Over Row","Flat back, pull the weights to your ribs, squeeze", false, "15–20", "light"],
+    ["Reverse Fly","Hinge, arms wide, lift to a T, squeeze the mid-back", false, "15–20", "light"],
+    ["W-Raise","Bend the elbows into a W, squeeze the shoulder blades down", false, "15", "light"],
+  ],
+};
+const ARM_WARM = [
+  ["Arm Circles Forward","Big smooth circles, open the shoulders"],
+  ["Arm Circles Back","Reverse it, stay tall and long"],
+  ["Shoulder Rolls","Roll back and down, relax the neck"],
+  ["Air Pull-Apart","Arms out, squeeze the shoulder blades, chest proud"],
+  ["Cross-Body Swings","Hug and open, loosen the chest"],
+];
+const ARM_BURN = [
+  ["Bicep Pulse","Hold at 90°, small fast pulses", false, "25–35", "bw"],
+  ["Lateral Raise Hold","Arms at shoulder height — hold & tiny pulses", false, "20–30", "bw"],
+  ["Tricep Pulse","Arms straight back, pulse up", false, "25–35", "bw"],
+  ["Small Arm Circles","Arms out, fast tiny circles — forward then back", false, "30–40", "bw"],
+  ["Front Raise Pulse","Arms at eye level, pulse up an inch", false, "25–35", "bw"],
+];
+const ARM_COOL = [
+  ["Overhead Tricep Stretch","Reach down your back, gentle pull on the elbow", true],
+  ["Cross-Body Shoulder Stretch","Draw the arm across, breathe into it", true],
+  ["Chest Opener","Hands clasped behind, open across the chest"],
+  ["Wrist & Forearm Stretch","Extend the arm, gently pull the fingers back", true],
+  ["Child's Pose Reach","Sink the hips back, walk the hands long"],
+];
+
+function generateArms(cfg){
+  const steps=[]; const sum=s=>s.reduce((t,x)=>t+x.dur,0);
+  // light + high-rep + continuous: long work, tiny micro-rest, back-to-back
+  const work = 45;
+  const micro = cfg.intensity==="savage"?5 : cfg.intensity==="chill"?12 : 8;
+  const blockRest = 35, burnWork = 40, burnRest = 8;
+
+  ARM_WARM.forEach(w=>steps.push({phase:"Warm-Up", kind:"warm", name:w[0], cue:w[1], dur:30, side:!!w[2]}));
+
+  const coolDur = ARM_COOL.length*30;
+  const finisherDur = burnWork*4 + burnRest*3 + blockRest;
+  const budget = cfg.min*60 - coolDur - finisherDur;
+
+  // balanced round-robin across muscle groups so every ~4-min block hits all
+  const order = ["biceps","triceps","shoulders","back"];
+  const pools = {}; order.forEach(g=> pools[g]=uniqEx(shuffle(ARMS[g].map(mkEx))));
+  const cur = {biceps:0,triceps:0,shoulders:0,back:0};
+  let gi=0;
+  function nextEx(){ const g=order[gi++%order.length]; const p=pools[g]; const e=p[cur[g]++%p.length]; return e; }
+  function armBlock(label, n){
+    const st=[];
+    for(let k=0;k<n;k++){
+      const e=nextEx();
+      st.push({phase:label, kind:"work", name:e.name, cue:e.cue, dur:work, side:e.uni, reps:e.reps, load:e.kind});
+      if(k<n-1) st.push({phase:label, kind:"rest", name:"Flow", cue:"Straight into the next — keep moving", dur:micro});
+    }
+    return st;
+  }
+  const changeStep = phase => ({phase, kind:"rest", name:"Rest", cue:"Shake the arms out, breathe", dur:blockRest});
+
+  let blk=1;
+  while(sum(steps) < budget - 60 && blk<=6){
+    const b = armBlock("Arm Circuit "+blk, 5);              // ~4 min back-to-back
+    const lead = steps.some(s=>s.kind==="work") ? blockRest : 0;
+    if(sum(steps)+lead+sum(b) > budget){
+      let acc=sum(steps)+lead; const fit=[];
+      for(const s of b){ if(acc+s.dur>budget) break; fit.push(s); acc+=s.dur; }
+      while(fit.length && fit[fit.length-1].kind==="rest") fit.pop();
+      if(fit.filter(s=>s.kind==="work").length>=2){ if(lead) steps.push(changeStep("Arm Circuit "+blk)); steps.push(...fit); }
+      break;
+    }
+    if(lead) steps.push(changeStep("Arm Circuit "+blk));
+    steps.push(...b); blk++;
+  }
+  if(!steps.some(s=>/Arm Circuit/.test(s.phase))) steps.push(...armBlock("Arm Circuit 1", 4));
+
+  // burnout — light pulses, AMRAP feel
+  steps.push({phase:"Arm Burnout", kind:"rest", name:"Rest", cue:"Last push — grab your weights", dur:blockRest});
+  const burn = uniqEx(shuffle(ARM_BURN.map(mkEx)));
+  for(let k=0;k<4;k++){
+    const e=burn[k%burn.length];
+    steps.push({phase:"Arm Burnout", kind:"work", name:e.name, cue:e.cue, dur:burnWork, side:e.uni, reps:e.reps, load:e.kind});
+    if(k<3) steps.push({phase:"Arm Burnout", kind:"rest", name:"Rest", cue:"Quick breath — keep the burn", dur:burnRest});
+  }
+
+  ARM_COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:30, side:!!c[2]}));
+  steps.unshift({phase:"Warm-Up", kind:"prep", name:"Get Ready", cue:"Grab your light weights — let's sculpt", dur:10});
+  attachNext(steps);
+  return steps;
+}
+
 /* insert a relocation window whenever the workout switches between the
    treadmill and the floor, so you have time to actually walk over */
 function withTransitions(steps, cfg){
@@ -640,6 +762,7 @@ function withTransitions(steps, cfg){
 
 function generate(cfg){
   if(cfg.style==="booty") return generateBooty(cfg);
+  if(cfg.style==="arms")  return generateArms(cfg);
   const P = presets(cfg.style, cfg.intensity);
   const F = FOCUS[cfg.focus];
   const steps=[];
@@ -703,6 +826,7 @@ document.querySelector(".styles").addEventListener("click",e=>{
   cfg.style=el.dataset.style;
   document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed", s===el));
   if(cfg.style==="booty"){ cfg.min=30; pickGroup(durEl,"min",30); }  // 30-min glute session by default
+  if(cfg.style==="arms"){ cfg.min=20; pickGroup(durEl,"min",20); }   // 20-min arm sculpt by default
 });
 document.getElementById("focus").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.focus=el.dataset.focus; pickGroup(focusEl,"focus",cfg.focus);
@@ -745,13 +869,15 @@ function byId(i){return document.getElementById(i);}
 function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); window.scrollTo(0,0); }
 
 const fmt = s=>{s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
-const STYLE_LABEL = {barrys:"Barry's", reshape:"Reshape", booty:"Booty Burn"};
+const STYLE_LABEL = {barrys:"Barry's", reshape:"Reshape", booty:"Booty Burn", arms:"Arm Sculpt"};
 /* per-block colored tag + short label shown in the preview */
 function blockMeta(phase, cfg){
   if(phase.startsWith("Tread"))         return {tag:"tread", label: cfg.treadmill?"Treadmill":"Cardio"};
   if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights", sub:"Glute max · by reps"};
   if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands", sub:"Glute med + min — “the shelf” · timed"};
   if(phase.startsWith("Burnout"))       return {tag:"tread", label:"Burnout", sub:"All 3 heads · AMRAP"};
+  if(phase.startsWith("Arm Burnout"))   return {tag:"tread", label:"Burnout", sub:"Light pulses · AMRAP"};
+  if(phase.startsWith("Arm"))           return {tag:"floor", label:"Sculpt", sub:"Bi · tri · delts · back — timed flow"};
   if(phase.startsWith("Floor"))         return {tag:"floor", label:"Floor"};
   if(phase.startsWith("Core"))          return {tag:"core",  label:"Core"};
   if(phase.startsWith("Warm"))          return {tag:"warm",  label:"Warm-Up"};
@@ -778,7 +904,7 @@ function buildPreview(){
       const isReps = stepMode(s)==="reps";
       const right = isReps ? s.reps : (s.dur+"s");
       let note="";
-      if(s.kind==="work" && !isReps) note = s.load==="bw" ? ' <span class="ec">· AMRAP</span>' : (s.reps?` <span class="ec">· ~${s.reps}</span>`:'');
+      if(s.kind==="work" && !isReps) note = /Burnout/.test(s.phase) ? ' <span class="ec">· AMRAP</span>' : (s.reps?` <span class="ec">· ~${s.reps}</span>`:'');
       else if(s.kind!=="work" && s.side) note=' <span class="ec">· both sides</span>';
       return `<div class="ex"><div class="en">${s.name}${note}</div><div class="ed">${right}</div></div>`;
     }).join("");
@@ -899,9 +1025,9 @@ function loadStep(i){
   if(s.kind==="work"){
     const lg = s.load && LOAD_GUIDE[s.load] && LOAD_GUIDE[s.load][cfg.level];
     const loadSpan = lg ? ' <span style="color:var(--mut)">· '+lg+'</span>' : '';
-    if(repsMode)          cueHTML += '<br><b style="color:var(--ink)">Do '+(s.reps||'your reps')+'</b>'+loadSpan;
-    else if(s.load==="bw")cueHTML += '<br><b style="color:var(--ink)">AMRAP · max good reps</b>'+(s.reps?' <span style="color:var(--mut)">· aim '+s.reps+'</span>':'');
-    else                  cueHTML += '<br><b style="color:var(--ink)">Target '+(s.reps||'')+'</b>'+loadSpan;
+    if(repsMode)                    cueHTML += '<br><b style="color:var(--ink)">Do '+(s.reps||'your reps')+'</b>'+loadSpan;
+    else if(/Burnout/.test(s.phase))cueHTML += '<br><b style="color:var(--ink)">AMRAP · max good reps</b>'+(s.reps?' <span style="color:var(--mut)">· aim '+s.reps+'</span>':'');
+    else                            cueHTML += '<br><b style="color:var(--ink)">Target '+(s.reps||'')+'</b>'+loadSpan;
   }
   byId("t-cue").innerHTML = cueHTML;
   // "switch sides halfway" only makes sense for a TIMED unilateral move
@@ -925,7 +1051,7 @@ function loadStep(i){
   else if(move){ say(s.name.replace("To the","Move to the") + (s.nextName? (". Next, "+s.nextName):"")); }
   else if(s.kind==="prep"){ say("Get ready"); }
   else if(repsMode){ say(s.name + (s.reps? (", "+speakReps(s.reps)+" reps"):"")); }
-  else if(s.load==="bw"){ say(s.name + ", max reps"); }
+  else if(/Burnout/.test(s.phase)){ say(s.name + ", max reps"); }
   else{ say(s.name + (s.reps? (", target "+speakReps(s.reps)):"") + (s.side? ", both sides":"")); }
   if(move){ beep(520,0.14,0.22); }
   else if(s.kind!=="rest" && s.kind!=="prep"){ beep(900,0.12,0.3); }
@@ -988,7 +1114,7 @@ function finishWorkout(){
   document.body.classList.remove("is-rest","is-move");
   beep(880,0.15,0.3); setTimeout(()=>beep(1180,0.3,0.3),160);
   say("Workout complete. Great work.");
-  const focusLabel = cfg.style==="booty" ? "Glutes" : FOCUS[cfg.focus].label;
+  const focusLabel = cfg.style==="booty" ? "Glutes" : cfg.style==="arms" ? "Arms" : FOCUS[cfg.focus].label;
   byId("d-sum").textContent = Math.max(1,Math.round((T.elapsed||totalDur())/60))+" minutes · "+
     (STYLE_LABEL[cfg.style]||"Barry's")+" · "+focusLabel;
   show("done");
