@@ -131,6 +131,11 @@
   /* transition / relocation state */
   body.is-move{--accent:#ffb020}
   body.is-move .rfg{stroke:#ffb020}
+  /* self-paced rep set (no countdown — tap DONE) */
+  body.is-reps{--accent:#5b8cff}
+  body.is-reps .rfg{stroke:#5b8cff}
+  body.is-reps .clock{font-size:clamp(30px,10vw,50px)}
+  body.is-reps .clock::after{content:" reps"; font-size:.4em; color:var(--mut); font-weight:700; letter-spacing:.1em; vertical-align:middle}
 
   /* done */
   .done{text-align:center; padding:30px 0}
@@ -452,6 +457,7 @@ const GLUTES = {
     ["Barbell Glute Bridge","On the floor, bar over the hips, bridge up and pause at the top", false, "10–12", "comp"],
     ["Romanian Deadlift","Soft knees, push the hips back, flat back — feel the stretch", false, "8–12", "comp"],
     ["Sumo Deadlift","Wide stance, toes out, drive the floor away through the heels", false, "8–12", "comp"],
+    ["Weighted Good Morning","Bar on the back, soft knees, hinge forward flat-backed, stand tall & squeeze", false, "10–12", "comp"],
     ["Single-Leg Hip Thrust","One foot planted, weight on the hip, drive up level", true, "10–12 / side", "iso"],
     ["Single-Leg RDL","Hinge over one leg, flat back, slow control down", true, "10–12 / side", "iso"],
     ["B-Stance RDL","Back toe as a kickstand, load the front glute, hips back", true, "10–12 / side", "iso"],
@@ -470,6 +476,7 @@ const GLUTES = {
     ["Banded Monster Walk","Wide stance, walk forward then back", false, "12–15 / way", "band"],
     ["Banded Standing Kickback","Stand tall, drive one leg straight back, squeeze", true, "15 / side", "band"],
     ["Banded Hip Abduction","Seated or standing, press out then control back in", true, "15–20 / side", "band"],
+    ["Side-Lying Hip Abduction","On your side, raise the top leg, toe slightly down, control the lower", true, "15–20 / side", "band"],
   ],
   burnout: [
     ["Glute Bridge Pulse","Hold at the top — small, fast pulses, keep tension", false, "25–30", "bw"],
@@ -736,9 +743,9 @@ const STYLE_LABEL = {barrys:"Barry's", reshape:"Reshape", booty:"Booty Burn"};
 /* per-block colored tag + short label shown in the preview */
 function blockMeta(phase, cfg){
   if(phase.startsWith("Tread"))         return {tag:"tread", label: cfg.treadmill?"Treadmill":"Cardio"};
-  if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights"};
-  if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands"};
-  if(phase.startsWith("Burnout"))       return {tag:"tread", label:"Burnout"};
+  if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights", sub:"Glute max · by reps"};
+  if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands", sub:"Glute med + min — “the shelf” · timed"};
+  if(phase.startsWith("Burnout"))       return {tag:"tread", label:"Burnout", sub:"All 3 heads · AMRAP"};
   if(phase.startsWith("Floor"))         return {tag:"floor", label:"Floor"};
   if(phase.startsWith("Core"))          return {tag:"core",  label:"Core"};
   if(phase.startsWith("Warm"))          return {tag:"warm",  label:"Warm-Up"};
@@ -747,7 +754,7 @@ function blockMeta(phase, cfg){
 
 function buildPreview(){
   const total = WORKOUT.reduce((t,s)=>t+s.dur,0);
-  byId("m-time").textContent = Math.round(total/60);
+  byId("m-time").textContent = (cfg.style==="booty"?"~":"")+Math.round(total/60);
   byId("m-style").textContent = STYLE_LABEL[cfg.style] || "Barry's";
   // group by phase
   const groups=[]; let cur=null;
@@ -759,13 +766,19 @@ function buildPreview(){
   const host=byId("blocks"); host.innerHTML="";
   groups.forEach(g=>{
     const mins=Math.round(g.steps.reduce((t,s)=>t+s.dur,0)/60);
-    const {tag,label}=blockMeta(g.phase, cfg);
+    const {tag,label,sub}=blockMeta(g.phase, cfg);
     const moves=g.steps.filter(s=>s.kind!=="rest"&&s.kind!=="move");
-    const rows=moves.map(s=>`<div class="ex">
-        <div class="en">${s.name}${s.reps?` <span class="ec">· ${s.reps} reps</span>`:(s.side?' <span class="ec">· both sides</span>':'')}</div>
-        <div class="ed">${s.dur}s</div></div>`).join("");
+    const rows=moves.map(s=>{
+      const isReps = stepMode(s)==="reps";
+      const right = isReps ? s.reps : (s.dur+"s");
+      let note="";
+      if(s.kind==="work" && !isReps) note = s.load==="bw" ? ' <span class="ec">· AMRAP</span>' : (s.reps?` <span class="ec">· ~${s.reps}</span>`:'');
+      else if(s.kind!=="work" && s.side) note=' <span class="ec">· both sides</span>';
+      return `<div class="ex"><div class="en">${s.name}${note}</div><div class="ed">${right}</div></div>`;
+    }).join("");
+    const subHTML = sub? ` <span class="ec" style="font-weight:500">· ${sub}</span>` : "";
     const div=document.createElement("div"); div.className="block";
-    div.innerHTML=`<div class="bh"><span class="tag ${tag}">${label}</span>${g.phase}
+    div.innerHTML=`<div class="bh"><span class="tag ${tag}">${label}</span>${g.phase}${subHTML}
         <span class="mins">${mins} min</span></div>${rows}`;
     host.appendChild(div);
   });
@@ -817,21 +830,29 @@ function say(text){
    ============================================================ */
 const RAD=146, CIRC=2*Math.PI*RAD;
 const ring=byId("t-ring"); ring.style.strokeDasharray=CIRC;
-let T={idx:0, remain:0, dur:0, running:false, timer:0, endAt:0, lastSec:-1, switched:false, total:0, before:0};
+let T={idx:0, remain:0, dur:0, running:false, timer:0, endAt:0, lastSec:-1, switched:false, total:0, mode:"time", elapsed:0, lastAt:0};
 let wakeLock=null;
 
-function totalDur(){return WORKOUT.reduce((t,s)=>t+s.dur,0);}
-function durBefore(i){let t=0;for(let k=0;k<i;k++)t+=WORKOUT[k].dur;return t;}
+function totalDur(){return WORKOUT.reduce((t,s)=>t+s.dur,0);}   // estimate — rep sets are self-paced
+/* loaded grind lifts are prescribed by REPS (self-paced, tap DONE); everything
+   ballistic / activation / metabolic / mobility is prescribed by TIME (countdown). */
+function stepMode(s){ return (s.kind==="work" && (s.load==="comp"||s.load==="iso")) ? "reps" : "time"; }
 
 async function reqWake(){ try{ if("wakeLock" in navigator) wakeLock=await navigator.wakeLock.request("screen"); }catch(e){} }
 function relWake(){ try{ wakeLock&&wakeLock.release(); wakeLock=null; }catch(e){} }
 
+/* single wall-clock stopwatch so total time stays honest across mixed rep/time steps */
+function updateElapsed(){
+  byId("t-prog").style.width = Math.min(100, 100*T.elapsed/(T.total||1))+"%";
+  byId("t-elapsed").textContent = fmt(T.elapsed)+" / ~"+fmt(T.total);
+}
+
 function startTimer(){
-  T.idx=0; T.total=totalDur(); show("timer");
+  T.idx=0; T.total=totalDur(); T.elapsed=0; show("timer");
   beep(660,0.05,0.0001); // unlock audio on user gesture
   setAudioSession();      // let background music duck, not pause
   reqWake();
-  T.running=true; byId("c-play").textContent="PAUSE";
+  T.running=true;
   loadStep(0); // starts ticking because running
 }
 
@@ -840,62 +861,88 @@ function startTimer(){
 function clearTick(){ if(T.timer){ clearInterval(T.timer); T.timer=0; } }
 function startTick(){
   clearTick();
-  T.endAt = performance.now() + T.remain*1000;
+  T.lastAt = performance.now();
+  if(T.mode==="time") T.endAt = T.lastAt + T.remain*1000;
   T.timer = setInterval(tick, 200);
 }
 
 function loadStep(i){
   const s=WORKOUT[i]; if(!s) return finishWorkout();
-  T.idx=i; T.dur=s.dur; T.remain=s.dur; T.lastSec=-1; T.switched=false; T.before=durBefore(i);
+  const mode = stepMode(s);
+  const repsMode = mode==="reps";
+  T.idx=i; T.dur=s.dur; T.remain=s.dur; T.lastSec=-1; T.switched=false; T.mode=mode;
   const rest = s.kind==="rest";
   const move = s.kind==="move";
   document.body.classList.toggle("is-rest", rest);
   document.body.classList.toggle("is-move", move);
+  document.body.classList.toggle("is-reps", repsMode);
   byId("t-phase").textContent=s.phase;
   byId("t-name").textContent=s.name;
-  // cue + rep target (+ per-level weight guidance for glute moves)
+
+  // centre readout: rep target (self-paced) or countdown clock (timed)
+  if(repsMode){
+    byId("t-clock").textContent = String(s.reps||"reps").split("/")[0].replace(" total","").trim();
+    ring.style.strokeDashoffset = 0;                 // full ring, no countdown
+  }else{
+    byId("t-clock").textContent = fmt(T.remain);
+    ring.style.strokeDashoffset = 0;                 // starts full, tick draws it down
+  }
+
+  // cue + prescription line
   let cueHTML = s.cue||"";
-  if(s.kind==="work" && s.reps){
-    cueHTML += '<br><b style="color:var(--ink)">Aim '+s.reps+'</b>';
+  if(s.kind==="work"){
     const lg = s.load && LOAD_GUIDE[s.load] && LOAD_GUIDE[s.load][cfg.level];
-    if(lg) cueHTML += ' <span style="color:var(--mut)">· '+lg+'</span>';
+    const loadSpan = lg ? ' <span style="color:var(--mut)">· '+lg+'</span>' : '';
+    if(repsMode)          cueHTML += '<br><b style="color:var(--ink)">Do '+(s.reps||'your reps')+'</b>'+loadSpan;
+    else if(s.load==="bw")cueHTML += '<br><b style="color:var(--ink)">AMRAP · max good reps</b>'+(s.reps?' <span style="color:var(--mut)">· aim '+s.reps+'</span>':'');
+    else                  cueHTML += '<br><b style="color:var(--ink)">Target '+(s.reps||'')+'</b>'+loadSpan;
   }
   byId("t-cue").innerHTML = cueHTML;
-  byId("t-side").classList.toggle("hidden", !s.side);
+  // "switch sides halfway" only makes sense for a TIMED unilateral move
+  byId("t-side").classList.toggle("hidden", !(s.side && !repsMode));
+
   // next-up line
   const nextLine=byId("t-next");
   if((rest||move) && s.nextName){ nextLine.innerHTML="Next: <b>"+s.nextName+"</b>"; }
   else{
     const nx=WORKOUT.slice(i+1).find(x=>x.kind!=="rest"&&x.kind!=="move");
-    nextLine.innerHTML = nx? "Up next: <b>"+nx.name+"</b>" : "Last one — finish strong";
+    const upnext = nx? "Up next: <b>"+nx.name+"</b>" : "Last one — finish strong";
+    nextLine.innerHTML = (repsMode? "Tap ✓ when your set's done · " : "") + upnext;
   }
-  renderClock();
+
+  // primary button: DONE for self-paced sets, PAUSE/RESUME for timed
+  byId("c-play").textContent = repsMode ? "DONE ✓" : (T.running? "PAUSE":"RESUME");
+
+  updateElapsed();
   // voice
   if(rest){ const w=s.name||"Rest"; say(s.nextName? (w+". Next, "+s.nextName):w); }
   else if(move){ say(s.name.replace("To the","Move to the") + (s.nextName? (". Next, "+s.nextName):"")); }
   else if(s.kind==="prep"){ say("Get ready"); }
-  else{ say(s.name + (s.reps? (", aim "+speakReps(s.reps)):"") + (s.side? ", both sides":"")); }
+  else if(repsMode){ say(s.name + (s.reps? (", "+speakReps(s.reps)+" reps"):"")); }
+  else if(s.load==="bw"){ say(s.name + ", max reps"); }
+  else{ say(s.name + (s.reps? (", target "+speakReps(s.reps)):"") + (s.side? ", both sides":"")); }
   if(move){ beep(520,0.14,0.22); }
   else if(s.kind!=="rest" && s.kind!=="prep"){ beep(900,0.12,0.3); }
   if(T.running) startTick();
 }
 
-function renderClock(){
+function renderClock(){   // timed steps only
   byId("t-clock").textContent=fmt(T.remain);
   const frac=T.dur>0?(T.remain/T.dur):0;
   ring.style.strokeDashoffset = CIRC*(1-frac);
-  const elapsed=T.before + (T.dur-T.remain);
-  byId("t-prog").style.width = (100*elapsed/T.total)+"%";
-  byId("t-elapsed").textContent = fmt(elapsed)+" / "+fmt(T.total);
 }
 
 function tick(){
   if(!T.running) return;
+  const now=performance.now();
+  T.elapsed += (now - T.lastAt)/1000; T.lastAt = now;
+  updateElapsed();
+  if(T.mode!=="time") return;      // self-paced rep set — waits for DONE, no countdown
   const s=WORKOUT[T.idx];
-  T.remain = (T.endAt - performance.now())/1000;
+  T.remain = (T.endAt - now)/1000;
   if(T.remain<0) T.remain=0;
 
-  // switch-sides cue at halfway for unilateral
+  // switch-sides cue at halfway for a timed unilateral move
   if(s && s.side && !T.switched && T.remain<=T.dur/2){
     T.switched=true; beep(700,0.1,0.25); say("Switch sides");
   }
@@ -914,9 +961,10 @@ function tick(){
 }
 
 byId("c-play").addEventListener("click",()=>{
+  if(T.mode==="reps"){ clearTick(); loadStep(T.idx+1); return; }   // DONE — advance to rest
   T.running=!T.running;
   byId("c-play").textContent=T.running?"PAUSE":"RESUME";
-  if(T.running){ setAudioSession(); reqWake(); startTick(); }
+  if(T.running){ setAudioSession(); T.lastAt=performance.now(); reqWake(); startTick(); }
   else{ clearTick(); relWake(); if("speechSynthesis"in window) speechSynthesis.cancel(); }
 });
 byId("c-skip").addEventListener("click",()=>{ clearTick(); loadStep(T.idx+1); });
@@ -935,7 +983,7 @@ function finishWorkout(){
   beep(880,0.15,0.3); setTimeout(()=>beep(1180,0.3,0.3),160);
   say("Workout complete. Great work.");
   const focusLabel = cfg.style==="booty" ? "Glutes" : FOCUS[cfg.focus].label;
-  byId("d-sum").textContent = Math.round(totalDur()/60)+" minutes · "+
+  byId("d-sum").textContent = Math.max(1,Math.round((T.elapsed||totalDur())/60))+" minutes · "+
     (STYLE_LABEL[cfg.style]||"Barry's")+" · "+focusLabel;
   show("done");
 }
