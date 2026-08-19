@@ -160,31 +160,33 @@
     <h2 class="section">Class style</h2>
     <div class="styles">
       <div class="style" data-style="barrys" aria-pressed="true">
-        <div class="nm">BARRY'S</div>
-        <div class="ds">Run &amp; lift. Hard tread intervals, heavy floor supersets.</div>
+        <div class="nm">HIIT</div>
+        <div class="ds">Run &amp; lift — tread + floor intervals and supersets. Pick a focus.</div>
       </div>
-      <div class="style" data-style="reshape" aria-pressed="false">
-        <div class="nm">RESHAPE</div>
-        <div class="ds">1Rebel-style. Tighter intervals, more reps, less rest.</div>
-      </div>
-      <div class="style" data-style="booty" aria-pressed="false" style="grid-column:1/-1">
+      <div class="style" data-style="booty" aria-pressed="false">
         <div class="nm">BOOTY BURN 🍑</div>
-        <div class="ds">Glutes only — bands + weights. Bridges, hip thrusts, kickbacks &amp; a burnout finisher. No running. Defaults to 30 min.</div>
+        <div class="ds">Glutes — banded warm-up/down + hip thrusts, cable kickbacks, sumos &amp; burnout. 30 min.</div>
       </div>
-      <div class="style" data-style="arms" aria-pressed="false" style="grid-column:1/-1">
+      <div class="style" data-style="arms" aria-pressed="false">
         <div class="nm">ARM SCULPT 💪</div>
-        <div class="ds">Slim, toned arms — light ~2 kg, high-rep, back-to-back circuits. Biceps, triceps &amp; shoulders. Not bulky. Defaults to 20 min.</div>
+        <div class="ds">Slim toned arms — light 2 kg circuits + a heavier 6 kg block. Not bulky. 20 min.</div>
+      </div>
+      <div class="style" data-style="core" aria-pressed="false">
+        <div class="nm">CORE 🔥</div>
+        <div class="ds">Abs &amp; obliques — kettlebell core + planks and anti-rotation holds. 15 min.</div>
       </div>
     </div>
 
-    <h2 class="section">Focus</h2>
-    <div class="chips" id="focus">
-      <div class="chip" data-focus="full" aria-pressed="true">Full Body</div>
-      <div class="chip" data-focus="arms_abs" aria-pressed="false">Arms &amp; Abs</div>
-      <div class="chip" data-focus="chest_back" aria-pressed="false">Chest &amp; Back</div>
-      <div class="chip" data-focus="legs_booty" aria-pressed="false">Legs &amp; Booty</div>
-      <div class="chip" data-focus="core" aria-pressed="false">Core</div>
-      <div class="chip" data-focus="run_lift" aria-pressed="false">Run &amp; Lift</div>
+    <div id="sec-focus">
+      <h2 class="section">Focus</h2>
+      <div class="chips" id="focus">
+        <div class="chip" data-focus="full" aria-pressed="true">Full Body</div>
+        <div class="chip" data-focus="arms_abs" aria-pressed="false">Arms &amp; Abs</div>
+        <div class="chip" data-focus="chest_back" aria-pressed="false">Chest &amp; Back</div>
+        <div class="chip" data-focus="legs_booty" aria-pressed="false">Legs &amp; Booty</div>
+        <div class="chip" data-focus="core" aria-pressed="false">Core</div>
+        <div class="chip" data-focus="run_lift" aria-pressed="false">Run &amp; Lift</div>
+      </div>
     </div>
 
     <h2 class="section">Duration</h2>
@@ -202,15 +204,8 @@
       <div class="chip" data-int="savage" aria-pressed="false">Savage<small>MIN REST</small></div>
     </div>
 
-    <h2 class="section">Level</h2>
-    <div class="chips" id="level">
-      <div class="chip" data-level="beg" aria-pressed="false">Beginner<small>LIGHT / LEARN FORM</small></div>
-      <div class="chip" data-level="int" aria-pressed="true">Intermediate<small>MODERATE–HEAVY</small></div>
-      <div class="chip" data-level="adv" aria-pressed="false">Advanced<small>HEAVY</small></div>
-    </div>
-
     <h2 class="section">Kit</h2>
-    <div class="row" style="margin-bottom:10px">
+    <div class="row" id="row-tread" style="margin-bottom:10px">
       <div>
         <div class="lbl">I have a treadmill</div>
         <div class="sub">Off = tread blocks become bodyweight cardio</div>
@@ -464,6 +459,8 @@ const COOL = [
 const GLUTES = {
   weighted: [
     ["Barbell Hip Thrust","Shoulders on the bench, chin tucked, drive hips up & squeeze hard", false, "8–12", "comp"],
+    ["Cable Straight-Leg Kickback","Low cable on the ankle, leg straight, drive back & squeeze — no cable? banded standing kickback", true, "15 / side", "iso"],
+    ["Elevated Sumo Squat","Feet on plates/step for extra depth, toes out wide, drive up through the heels — no elevation? deep sumo on the floor", false, "12–15", "comp"],
     ["Barbell Glute Bridge","On the floor, bar over the hips, bridge up and pause at the top", false, "10–12", "comp"],
     ["Romanian Deadlift","Soft knees, push the hips back, flat back — feel the stretch", false, "8–12", "comp"],
     ["Sumo Deadlift","Wide stance, toes out, drive the floor away through the heels", false, "8–12", "comp"],
@@ -487,6 +484,7 @@ const GLUTES = {
     ["Banded Standing Kickback","Stand tall, drive one leg straight back, squeeze", true, "15 / side", "band"],
     ["Banded Hip Abduction","Seated or standing, press out then control back in", true, "15–20 / side", "band"],
     ["Side-Lying Hip Abduction","On your side, raise the top leg, toe slightly down, control the lower", true, "15–20 / side", "band"],
+    ["Lateral Leg Raise","Standing or side-lying, lift the leg out to the side, squeeze the glute", true, "15–20 / side", "band"],
   ],
   burnout: [
     ["Glute Bridge Pulse","Hold at the top — small, fast pulses, keep tension", false, "25–30", "bw"],
@@ -498,28 +496,32 @@ const GLUTES = {
   ],
 };
 /* weight guidance shown per move, by kind × chosen level */
+/* single intermediate–advanced target per load kind (no level selector) */
 const LOAD_GUIDE = {
-  comp: {beg:"light · own the squeeze", int:"moderate–heavy · RPE 8", adv:"heavy · 2–3 in reserve"},
-  iso:  {beg:"light · controlled",      int:"light–moderate · strict", adv:"moderate · strict form"},
-  kb:   {beg:"8–12 kg", int:"16–20 kg", adv:"24 kg+"},
-  band: {beg:"light band", int:"medium band", adv:"heavy band"},
-  light:{beg:"1–2 kg", int:"2 kg", adv:"2–3 kg"},
-  bw:   {beg:"bodyweight", int:"bodyweight", adv:"+ band / light DB"},
+  comp:  "moderate–heavy · last 2 reps hard",
+  iso:   "moderate · strict, control the lower",
+  heavy: "~6 kg / arm · last 2 reps hard",
+  corewt:"~6–8 kg bell/DB · braced",
+  kb:    "16–24 kg",
+  band:  "medium–heavy band",
+  light: "~2 kg · light & fast",
+  bw:    "bodyweight",
 };
 function speakReps(r){ return String(r).replace("–"," to ").replace("/ side"," each side").replace("/ way"," each way").replace(" total","").replace(/\s+/g," ").trim(); }
+/* Banded, and deliberately hard — real activation, not gentle mobility.
+   [name, cue, unilateral?, repTarget] — all use a medium–heavy band. */
 const GLUTE_WARM = [
-  ["Glute Bridge","Slow reps, squeeze hard at the top"],
-  ["Banded Lateral Walk","Wake up the side glutes, stay low"],
-  ["Bodyweight Good Morning","Hinge at the hips, flat back"],
-  ["Fire Hydrant","Open the hip, controlled", true],
-  ["World's Greatest Stretch","Lunge, reach and rotate", true],
+  ["Banded Glute Bridge","Band above the knees, press the knees out hard, squeeze at the top", false, "20"],
+  ["Banded Lateral Walk","Stay low, drive big steps against the band — no collapsing knees", true, "15 / way"],
+  ["Banded Monster Walk","Wide athletic stance, walk forward then back, keep the tension", false, "15 / way"],
+  ["Banded Fire Hydrant","Knee out hard against the band, hips square to the floor", true, "15 / side"],
+  ["Banded Clamshell","Drive the knee open against the band, slow control back", true, "15 / side"],
 ];
 const GLUTE_COOL = [
-  ["Figure-Four Stretch","Ankle over the knee, pull in gently", true],
-  ["Pigeon Pose","Sink the hip down and breathe", true],
-  ["Standing Quad Stretch","Heel to glute, stand tall", true],
-  ["Seated Forward Fold","Reach long, let the hamstrings release"],
-  ["Child's Pose","Sink back, long deep breaths"],
+  ["Banded Glute Bridge March","Bridge up, march the knees against the band, hips dead level", false, "20"],
+  ["Banded Abduction Pulses","Knees pressed out — pulse against the band, don't let them cave", false, "25"],
+  ["Banded Standing Kickback","Stand tall, drive the leg straight back against the band, squeeze", true, "15 / side"],
+  ["Banded Frog Pump","Heels together, knees wide, pump hard against the band", false, "25"],
 ];
 
 /* dedupe exercise objects by name, keeping order */
@@ -559,14 +561,19 @@ function generateBooty(cfg){
   const changeStep = phase => ({phase, kind:"rest", name:"Switch station",
     cue:"Put weights away / grab your bands — set up for the next block", dur:changeRest});
 
-  // activation / warm-up (~2.5 min)
-  GLUTE_WARM.forEach(w=>steps.push({phase:"Warm-Up", kind:"warm", name:w[0], cue:w[1], dur:30, side:!!w[2]}));
+  // banded activation warm-up — hard, not gentle (40s per move w/ rep target)
+  GLUTE_WARM.forEach(w=>steps.push({phase:"Warm-Up", kind:"warm", name:w[0], cue:w[1], dur:40, side:!!w[2], reps:w[3], load:"band"}));
 
-  const coolDur = GLUTE_COOL.length*30;
+  const coolDur = GLUTE_COOL.length*40;
   const finisherDur = P.work*4 + burnRest*3 + changeRest;   // reserve burnout + its changeover
   const budget = cfg.min*60 - coolDur - finisherDur;
 
-  const wpool = uniqEx(shuffle(GLUTES.weighted.map(mkEx)));
+  // core moves the user wants front-loaded, then the rest shuffled in
+  const CORE_GLUTES = /Barbell Hip Thrust|Cable Straight-Leg Kickback|Elevated Sumo Squat|Barbell Glute Bridge/;
+  const wpool = uniqEx([
+    ...GLUTES.weighted.filter(a=>CORE_GLUTES.test(a[0])).map(mkEx),
+    ...shuffle(GLUTES.weighted.filter(a=>!CORE_GLUTES.test(a[0])).map(mkEx)),
+  ]);
   const bpool = uniqEx(shuffle(GLUTES.band.map(mkEx)));
   let wi=0, bi=0, blk=1;
 
@@ -611,8 +618,8 @@ function generateBooty(cfg){
   steps.push(...bootyBlock("Burnout", uniqEx(shuffle(GLUTES.burnout.map(mkEx))), 0, 4, P.work, burnRest,
     "Rest", "Quick breath — keep the burn").steps);
 
-  // cooldown
-  GLUTE_COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:30, side:!!c[2]}));
+  // banded cool-down burner — still hard, not a gentle stretch (40s w/ rep target)
+  GLUTE_COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:40, side:!!c[2], reps:c[3], load:"band"}));
 
   // intro
   steps.unshift({phase:"Warm-Up", kind:"prep", name:"Get Ready", cue:"Bands on — let's build", dur:10});
@@ -654,14 +661,17 @@ const ARMS = {
     ["Reverse Fly","Hinge, arms wide, lift to a T, squeeze the mid-back", false, "15–20", "light"],
     ["W-Raise","Bend the elbows into a W, squeeze the shoulder blades down", false, "15", "light"],
   ],
+  // heavier middle block (~6 kg/arm) — the moves that reward more load: presses & rows
+  // build shape, plus overhead triceps (⅔ of the arm) and a heavier curl. By reps.
+  heavy: [
+    ["Shoulder Press","Press straight overhead, ribs down, control the lower", false, "8–12", "heavy"],
+    ["Bent-Over Row","Flat back, drive the elbows back, pull to the ribs & squeeze", false, "8–12", "heavy"],
+    ["Overhead Tricep Extension","Both hands on one weight, elbows tucked, full stretch behind", false, "10–12", "heavy"],
+    ["Heavy Hammer Curl","Palms in, strict — heavier bells, zero swing", false, "8–12", "heavy"],
+    ["Arnold Press","Rotate the palms open as you press overhead", false, "8–12", "heavy"],
+    ["Upright Row","Elbows lead, pull up to the chest, control down", false, "10–12", "heavy"],
+  ],
 };
-const ARM_WARM = [
-  ["Arm Circles Forward","Big smooth circles, open the shoulders"],
-  ["Arm Circles Back","Reverse it, stay tall and long"],
-  ["Shoulder Rolls","Roll back and down, relax the neck"],
-  ["Air Pull-Apart","Arms out, squeeze the shoulder blades, chest proud"],
-  ["Cross-Body Swings","Hug and open, loosen the chest"],
-];
 const ARM_BURN = [
   ["Bicep Pulse","Hold at 90°, small fast pulses", false, "25–35", "bw"],
   ["Lateral Raise Hold","Arms at shoulder height — hold & tiny pulses", false, "20–30", "bw"],
@@ -669,34 +679,24 @@ const ARM_BURN = [
   ["Small Arm Circles","Arms out, fast tiny circles — forward then back", false, "30–40", "bw"],
   ["Front Raise Pulse","Arms at eye level, pulse up an inch", false, "25–35", "bw"],
 ];
-const ARM_COOL = [
-  ["Overhead Tricep Stretch","Reach down your back, gentle pull on the elbow", true],
-  ["Cross-Body Shoulder Stretch","Draw the arm across, breathe into it", true],
-  ["Chest Opener","Hands clasped behind, open across the chest"],
-  ["Wrist & Forearm Stretch","Extend the arm, gently pull the fingers back", true],
-  ["Child's Pose Reach","Sink the hips back, walk the hands long"],
-];
 
+/* No warm-up / cool-down (per request). Light back-to-back circuits with ONE
+   heavier ~6 kg reps-based block in the middle, then a light pulse burnout. */
 function generateArms(cfg){
   const steps=[]; const sum=s=>s.reduce((t,x)=>t+x.dur,0);
-  // light + high-rep + continuous: long work, tiny micro-rest, back-to-back
   const work = 45;
   const micro = cfg.intensity==="savage"?5 : cfg.intensity==="chill"?12 : 8;
-  const blockRest = 35, burnWork = 40, burnRest = 8;
-
-  ARM_WARM.forEach(w=>steps.push({phase:"Warm-Up", kind:"warm", name:w[0], cue:w[1], dur:30, side:!!w[2]}));
-
-  const coolDur = ARM_COOL.length*30;
+  const blockRest = 35, heavyRest = 30, burnWork = 40, burnRest = 8;
   const finisherDur = burnWork*4 + burnRest*3 + blockRest;
-  const budget = cfg.min*60 - coolDur - finisherDur;
+  const budget = cfg.min*60 - finisherDur;
 
-  // balanced round-robin across muscle groups so every ~4-min block hits all
+  // light circuit — balanced round-robin so every ~4-min block hits all groups
   const order = ["biceps","triceps","shoulders","back"];
   const pools = {}; order.forEach(g=> pools[g]=uniqEx(shuffle(ARMS[g].map(mkEx))));
   const cur = {biceps:0,triceps:0,shoulders:0,back:0};
   let gi=0;
-  function nextEx(){ const g=order[gi++%order.length]; const p=pools[g]; const e=p[cur[g]++%p.length]; return e; }
-  function armBlock(label, n){
+  const nextEx = () => { const g=order[gi++%order.length]; const p=pools[g]; return p[cur[g]++%p.length]; };
+  function circuit(label, n){
     const st=[];
     for(let k=0;k<n;k++){
       const e=nextEx();
@@ -705,26 +705,45 @@ function generateArms(cfg){
     }
     return st;
   }
-  const changeStep = phase => ({phase, kind:"rest", name:"Rest", cue:"Shake the arms out, breathe", dur:blockRest});
-
-  let blk=1;
-  while(sum(steps) < budget - 60 && blk<=6){
-    const b = armBlock("Arm Circuit "+blk, 5);              // ~4 min back-to-back
-    const lead = steps.some(s=>s.kind==="work") ? blockRest : 0;
-    if(sum(steps)+lead+sum(b) > budget){
-      let acc=sum(steps)+lead; const fit=[];
-      for(const s of b){ if(acc+s.dur>budget) break; fit.push(s); acc+=s.dur; }
-      while(fit.length && fit[fit.length-1].kind==="rest") fit.pop();
-      if(fit.filter(s=>s.kind==="work").length>=2){ if(lead) steps.push(changeStep("Arm Circuit "+blk)); steps.push(...fit); }
-      break;
+  const heavyPool = uniqEx(shuffle(ARMS.heavy.map(mkEx)));
+  function heavyBlock(label, n){
+    const st=[];
+    for(let k=0;k<n;k++){
+      const e=heavyPool[k%heavyPool.length];
+      st.push({phase:label, kind:"work", name:e.name, cue:e.cue, dur:work, side:e.uni, reps:e.reps, load:e.kind});
+      if(k<n-1) st.push({phase:label, kind:"rest", name:"Rest", cue:"Reset — grab the heavier weights (~6 kg)", dur:heavyRest});
     }
-    if(lead) steps.push(changeStep("Arm Circuit "+blk));
-    steps.push(...b); blk++;
+    return st;
   }
-  if(!steps.some(s=>/Arm Circuit/.test(s.phase))) steps.push(...armBlock("Arm Circuit 1", 4));
+  const changeStep = (phase, cue) => ({phase, kind:"rest", name:"Rest", cue:cue||"Shake the arms out, breathe", dur:blockRest});
 
-  // burnout — light pulses, AMRAP feel
-  steps.push({phase:"Arm Burnout", kind:"rest", name:"Rest", cue:"Last push — grab your weights", dur:blockRest});
+  // sequence: light circuit → HEAVY block (middle) → light circuit → (more if room)
+  const plan = [];
+  plan.push(circuit("Arm Circuit 1", 5));
+  plan.push(heavyBlock("Heavy Sculpt", 4));
+  plan.push(circuit("Arm Circuit 2", 5));
+  let extra=3;
+  // fit as many as budget allows; always keep at least circuit1 + heavy
+  for(let i=0;i<plan.length;i++){
+    const b=plan[i];
+    const lead = steps.some(s=>s.kind==="work") ? blockRest : 0;
+    if(sum(steps)+lead+sum(b) <= budget){
+      if(lead) steps.push(changeStep(b[0].phase, /Heavy/.test(b[0].phase)?"Grab your heavier weights (~6 kg)":undefined));
+      steps.push(...b);
+    } else if(i<=1){                       // force-fit circuit1 + heavy on short durations
+      if(lead) steps.push(changeStep(b[0].phase));
+      steps.push(...b);
+    } else break;
+  }
+  // top up with more light circuits on longer durations
+  while(sum(steps) < budget - blockRest - work*3){
+    const b=circuit("Arm Circuit "+extra, 5); extra++;
+    if(sum(steps)+blockRest+sum(b) > budget) break;
+    steps.push(changeStep(b[0].phase)); steps.push(...b);
+  }
+
+  // light pulse burnout
+  steps.push({phase:"Arm Burnout", kind:"rest", name:"Rest", cue:"Last push — grab the light weights", dur:blockRest});
   const burn = uniqEx(shuffle(ARM_BURN.map(mkEx)));
   for(let k=0;k<4;k++){
     const e=burn[k%burn.length];
@@ -732,8 +751,99 @@ function generateArms(cfg){
     if(k<3) steps.push({phase:"Arm Burnout", kind:"rest", name:"Rest", cue:"Quick breath — keep the burn", dur:burnRest});
   }
 
-  ARM_COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:30, side:!!c[2]}));
-  steps.unshift({phase:"Warm-Up", kind:"prep", name:"Get Ready", cue:"Grab your light weights — let's sculpt", dur:10});
+  steps.unshift({phase:"Arm Circuit 1", kind:"prep", name:"Get Ready", cue:"Grab your weights — let's sculpt", dur:10});
+  attachNext(steps);
+  return steps;
+}
+
+/* ============================================================
+   CORE — kettlebell core (by reps) + planks / anti-rotation (timed)
+   Complete core = flexion + anti-extension + anti-rotation + obliques.
+   ============================================================ */
+const ABS = {
+  weighted: [   // kettlebell / dumbbell — by reps, ~6–8 kg bell
+    ["KB Around-the-World","Circle the bell around your waist, brace hard — switch direction halfway", false, "20 (10 each way)", "corewt"],
+    ["KB Halo","Circle the bell around your head, tight core, slow & controlled", false, "10 / side", "corewt"],
+    ["KB Wood Chopper","Chop diagonally hip to shoulder, rotate through the waist", true, "10 / side", "corewt"],
+    ["KB Full-Extension Crunch","Arms overhead holding the bell, crunch up long and tall", false, "15", "corewt"],
+    ["Weighted Russian Twist","Feet up, rotate the bell side to side, chest tall", false, "20 (10 each way)", "corewt"],
+    ["Weighted Sit-Up","Press the bell to the ceiling as you sit all the way up", false, "15", "corewt"],
+    ["Suitcase March","Hold one bell at your side, march tall — resist the lean (anti-lateral-flexion)", true, "20 steps / side", "corewt"],
+  ],
+  plank: [      // bodyweight holds / anti-rotation — timed
+    ["Renegade Row","Plank on the weights, row one hand to the hip — hips dead still", true, "30s / side", "bw"],
+    ["Push-Pull Plank","Walk the hands up to a push-up and back down, core braced", false, "40s", "bw"],
+    ["Plank Dips","Forearm plank, dip the hips side to side", false, "40s", "bw"],
+    ["High Plank Hold","Squeeze everything — don't let the hips sag", false, "40s", "bw"],
+    ["Side Plank","Hips stacked and lifted high", true, "30s / side", "bw"],
+    ["Plank Shoulder Taps","Tap opposite shoulders, hips stay square (anti-rotation)", false, "40s", "bw"],
+    ["Mountain Climbers","Drive the knees in, hips low, fast feet", false, "40s", "bw"],
+    ["Bicycle Crunch","Elbow to opposite knee, slow and controlled", false, "40s", "bw"],
+    ["Leg Raise","Lower slow, keep the low back pressed down", false, "40s", "bw"],
+    ["Dead Bug","Opposite arm and leg, brace the core throughout", false, "40s", "bw"],
+  ],
+  burnout: [
+    ["Hollow Hold","Low back pressed down, arms & legs long — hold", false, "20–40s", "bw"],
+    ["Flutter Kicks","Small fast kicks, core braced", false, "30–40", "bw"],
+    ["Plank Hold","Hold strong — go to failure", false, "max", "bw"],
+    ["V-Up","Reach the hands to the toes, control down", false, "15–20", "bw"],
+  ],
+};
+
+function generateAbs(cfg){
+  const steps=[]; const sum=s=>s.reduce((t,x)=>t+x.dur,0);
+  const kbRest=25, plankWork=40, micro=10, blockRest=30, burnWork=40, burnRest=8;
+  const finisherDur = burnWork*4 + burnRest*3 + blockRest;
+  const budget = cfg.min*60 - finisherDur;
+
+  const wpool = uniqEx(shuffle(ABS.weighted.map(mkEx)));
+  const ppool = uniqEx(shuffle(ABS.plank.map(mkEx)));
+  let wi=0, pi=0, blk=1;
+
+  function kbBlock(label, n){
+    const st=[];
+    for(let k=0;k<n;k++){ const e=wpool[wi++%wpool.length];
+      st.push({phase:label, kind:"work", name:e.name, cue:e.cue, dur:plankWork, side:e.uni, reps:e.reps, load:e.kind});
+      if(k<n-1) st.push({phase:label, kind:"rest", name:"Rest", cue:"Set the bell, breathe", dur:kbRest});
+    }
+    return st;
+  }
+  function plankBlock(label, n){
+    const st=[];
+    for(let k=0;k<n;k++){ const e=ppool[pi++%ppool.length];
+      st.push({phase:label, kind:"work", name:e.name, cue:e.cue, dur:plankWork, side:e.uni, reps:e.reps, load:e.kind});
+      if(k<n-1) st.push({phase:label, kind:"rest", name:"Flow", cue:"Straight into the next — brace", dur:micro});
+    }
+    return st;
+  }
+  const changeStep = phase => ({phase, kind:"rest", name:"Switch", cue:"Reset — set up the next block", dur:blockRest});
+  function pushBlock(res){
+    const lead = steps.some(s=>s.kind==="work") ? blockRest : 0;
+    if(sum(steps)+lead+sum(res) <= budget){ if(lead) steps.push(changeStep(res[0].phase)); steps.push(...res); return true; }
+    let acc=sum(steps)+lead; const fit=[];
+    for(const s of res){ if(acc+s.dur>budget) break; fit.push(s); acc+=s.dur; }
+    while(fit.length && fit[fit.length-1].kind==="rest") fit.pop();
+    if(fit.filter(s=>s.kind==="work").length>=2){ if(lead) steps.push(changeStep(res[0].phase)); steps.push(...fit); }
+    return false;
+  }
+
+  while(sum(steps) < budget - 40 && blk<=5){
+    if(!pushBlock(kbBlock("Core Weights "+blk, 4))) break;
+    if(!pushBlock(plankBlock("Core Circuit "+blk, 4))) break;
+    blk++;
+  }
+  if(!steps.some(s=>/Core Weights/.test(s.phase))) steps.push(...kbBlock("Core Weights 1", 3));
+  if(!steps.some(s=>/Core Circuit/.test(s.phase))){ steps.push(changeStep("Core Circuit 1")); steps.push(...plankBlock("Core Circuit 1", 3)); }
+
+  // burnout — hold to failure, AMRAP
+  steps.push({phase:"Core Burnout", kind:"rest", name:"Switch", cue:"Last push — down on the mat", dur:blockRest});
+  const burn = uniqEx(shuffle(ABS.burnout.map(mkEx)));
+  for(let k=0;k<4;k++){ const e=burn[k%burn.length];
+    steps.push({phase:"Core Burnout", kind:"work", name:e.name, cue:e.cue, dur:burnWork, side:e.uni, reps:e.reps, load:e.kind});
+    if(k<3) steps.push({phase:"Core Burnout", kind:"rest", name:"Rest", cue:"Quick breath — hold on", dur:burnRest});
+  }
+
+  steps.unshift({phase:"Core Weights 1", kind:"prep", name:"Get Ready", cue:"Grab a kettlebell — brace the core", dur:10});
   attachNext(steps);
   return steps;
 }
@@ -763,6 +873,7 @@ function withTransitions(steps, cfg){
 function generate(cfg){
   if(cfg.style==="booty") return generateBooty(cfg);
   if(cfg.style==="arms")  return generateArms(cfg);
+  if(cfg.style==="core")  return generateAbs(cfg);
   const P = presets(cfg.style, cfg.intensity);
   const F = FOCUS[cfg.focus];
   const steps=[];
@@ -812,8 +923,9 @@ function generate(cfg){
 /* ============================================================
    State + setup wiring
    ============================================================ */
-const cfg = { style:"barrys", focus:"full", min:45, intensity:"standard", level:"int", treadmill:false, voice:true };
+const cfg = { style:"barrys", focus:"full", min:45, intensity:"standard", treadmill:false, voice:true };
 let WORKOUT = [];
+const STYLE_DEFAULT_MIN = { booty:30, arms:20, core:15 };
 
 function pickGroup(sel, key, val){
   sel.querySelectorAll("[aria-pressed]").forEach(el=>{
@@ -821,12 +933,19 @@ function pickGroup(sel, key, val){
     el.setAttribute("aria-pressed", on);
   });
 }
+/* focus + treadmill only apply to the general HIIT style; the targeted styles
+   (booty/arms/core) define their own focus and need no treadmill */
+function applyStyleUI(){
+  const special = cfg.style!=="barrys";
+  document.getElementById("sec-focus").classList.toggle("hidden", special);
+  document.getElementById("row-tread").classList.toggle("hidden", special);
+}
 document.querySelector(".styles").addEventListener("click",e=>{
   const el=e.target.closest(".style"); if(!el)return;
   cfg.style=el.dataset.style;
   document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed", s===el));
-  if(cfg.style==="booty"){ cfg.min=30; pickGroup(durEl,"min",30); }  // 30-min glute session by default
-  if(cfg.style==="arms"){ cfg.min=20; pickGroup(durEl,"min",20); }   // 20-min arm sculpt by default
+  if(STYLE_DEFAULT_MIN[cfg.style]){ cfg.min=STYLE_DEFAULT_MIN[cfg.style]; pickGroup(durEl,"min",cfg.min); }
+  applyStyleUI();
 });
 document.getElementById("focus").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.focus=el.dataset.focus; pickGroup(focusEl,"focus",cfg.focus);
@@ -837,11 +956,8 @@ document.getElementById("dur").addEventListener("click",e=>{
 document.getElementById("intensity").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.intensity=el.dataset.int; pickGroup(intEl,"int",cfg.intensity);
 });
-document.getElementById("level").addEventListener("click",e=>{
-  const el=e.target.closest(".chip"); if(!el)return; cfg.level=el.dataset.level; pickGroup(levelEl,"level",cfg.level);
-});
 const focusEl=document.getElementById("focus"), durEl=document.getElementById("dur"),
-      intEl=document.getElementById("intensity"), levelEl=document.getElementById("level");
+      intEl=document.getElementById("intensity");
 
 function bindSwitch(id, key){
   const sw=document.getElementById(id);
@@ -853,13 +969,15 @@ bindSwitch("sw-tread","treadmill"); bindSwitch("sw-voice","voice");
 try{
   const saved=JSON.parse(localStorage.getItem("roadwork")||"null");
   if(saved){ Object.assign(cfg,saved);
+    if(["barrys","booty","arms","core"].indexOf(cfg.style)<0) cfg.style="barrys";  // legacy (e.g. "reshape") → HIIT
+    delete cfg.level;
     document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed",s.dataset.style===cfg.style));
     pickGroup(focusEl,"focus",cfg.focus); pickGroup(durEl,"min",cfg.min); pickGroup(intEl,"int",cfg.intensity);
-    pickGroup(levelEl,"level",cfg.level);
     document.getElementById("sw-tread").setAttribute("aria-pressed",cfg.treadmill);
     document.getElementById("sw-voice").setAttribute("aria-pressed",cfg.voice);
   }
 }catch(e){}
+applyStyleUI();
 
 /* ============================================================
    Screens
@@ -869,15 +987,19 @@ function byId(i){return document.getElementById(i);}
 function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); window.scrollTo(0,0); }
 
 const fmt = s=>{s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
-const STYLE_LABEL = {barrys:"Barry's", reshape:"Reshape", booty:"Booty Burn", arms:"Arm Sculpt"};
+const STYLE_LABEL = {barrys:"HIIT", booty:"Booty Burn", arms:"Arm Sculpt", core:"Core"};
 /* per-block colored tag + short label shown in the preview */
 function blockMeta(phase, cfg){
   if(phase.startsWith("Tread"))         return {tag:"tread", label: cfg.treadmill?"Treadmill":"Cardio"};
   if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights", sub:"Glute max · by reps"};
   if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands", sub:"Glute med + min — “the shelf” · timed"};
   if(phase.startsWith("Burnout"))       return {tag:"tread", label:"Burnout", sub:"All 3 heads · AMRAP"};
+  if(phase.startsWith("Heavy"))         return {tag:"tread", label:"Heavy", sub:"~6 kg · by reps"};
   if(phase.startsWith("Arm Burnout"))   return {tag:"tread", label:"Burnout", sub:"Light pulses · AMRAP"};
-  if(phase.startsWith("Arm"))           return {tag:"floor", label:"Sculpt", sub:"Bi · tri · delts · back — timed flow"};
+  if(phase.startsWith("Arm"))           return {tag:"floor", label:"Sculpt", sub:"Bi · tri · delts · back — light, timed"};
+  if(phase.startsWith("Core Burnout"))  return {tag:"tread", label:"Burnout", sub:"Hold to failure · AMRAP"};
+  if(phase.startsWith("Core Weights"))  return {tag:"floor", label:"KB Core", sub:"kettlebell · by reps"};
+  if(phase.startsWith("Core Circuit"))  return {tag:"core",  label:"Planks", sub:"anti-rotation & holds · timed"};
   if(phase.startsWith("Floor"))         return {tag:"floor", label:"Floor"};
   if(phase.startsWith("Core"))          return {tag:"core",  label:"Core"};
   if(phase.startsWith("Warm"))          return {tag:"warm",  label:"Warm-Up"};
@@ -886,7 +1008,7 @@ function blockMeta(phase, cfg){
 
 function buildPreview(){
   const total = WORKOUT.reduce((t,s)=>t+s.dur,0);
-  byId("m-time").textContent = (cfg.style==="booty"?"~":"")+Math.round(total/60);
+  byId("m-time").textContent = (cfg.style!=="barrys"?"~":"")+Math.round(total/60);
   byId("m-style").textContent = STYLE_LABEL[cfg.style] || "Barry's";
   // group by phase
   const groups=[]; let cur=null;
@@ -968,7 +1090,8 @@ let wakeLock=null;
 function totalDur(){return WORKOUT.reduce((t,s)=>t+s.dur,0);}   // estimate — rep sets are self-paced
 /* loaded grind lifts are prescribed by REPS (self-paced, tap DONE); everything
    ballistic / activation / metabolic / mobility is prescribed by TIME (countdown). */
-function stepMode(s){ return (s.kind==="work" && (s.load==="comp"||s.load==="iso")) ? "reps" : "time"; }
+const REPS_LOADS = {comp:1, iso:1, heavy:1, corewt:1};
+function stepMode(s){ return (s.kind==="work" && REPS_LOADS[s.load]) ? "reps" : "time"; }
 
 async function reqWake(){ try{ if("wakeLock" in navigator) wakeLock=await navigator.wakeLock.request("screen"); }catch(e){} }
 function relWake(){ try{ wakeLock&&wakeLock.release(); wakeLock=null; }catch(e){} }
@@ -1020,10 +1143,10 @@ function loadStep(i){
     ring.style.strokeDashoffset = 0;                 // starts full, tick draws it down
   }
 
-  // cue + prescription line
+  // cue + prescription line (shown for any move with a rep target)
   let cueHTML = s.cue||"";
-  if(s.kind==="work"){
-    const lg = s.load && LOAD_GUIDE[s.load] && LOAD_GUIDE[s.load][cfg.level];
+  if(s.reps){
+    const lg = s.load && LOAD_GUIDE[s.load];
     const loadSpan = lg ? ' <span style="color:var(--mut)">· '+lg+'</span>' : '';
     if(repsMode)                    cueHTML += '<br><b style="color:var(--ink)">Do '+(s.reps||'your reps')+'</b>'+loadSpan;
     else if(/Burnout/.test(s.phase))cueHTML += '<br><b style="color:var(--ink)">AMRAP · max good reps</b>'+(s.reps?' <span style="color:var(--mut)">· aim '+s.reps+'</span>':'');
@@ -1114,7 +1237,7 @@ function finishWorkout(){
   document.body.classList.remove("is-rest","is-move");
   beep(880,0.15,0.3); setTimeout(()=>beep(1180,0.3,0.3),160);
   say("Workout complete. Great work.");
-  const focusLabel = cfg.style==="booty" ? "Glutes" : cfg.style==="arms" ? "Arms" : FOCUS[cfg.focus].label;
+  const focusLabel = cfg.style==="booty" ? "Glutes" : cfg.style==="arms" ? "Arms" : cfg.style==="core" ? "Abs" : FOCUS[cfg.focus].label;
   byId("d-sum").textContent = Math.max(1,Math.round((T.elapsed||totalDur())/60))+" minutes · "+
     (STYLE_LABEL[cfg.style]||"Barry's")+" · "+focusLabel;
   show("done");
