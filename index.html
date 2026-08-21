@@ -861,40 +861,40 @@ function generateAbs(cfg){
    Curated order (not random). {name, cue, unilateral?, holdSecs}.
    ============================================================ */
 const RELIEF_FLOW = [
-  {phase:"Neck & Shoulders", items:[
-    ["Shoulder Rolls","Slow, big rolls back and down — let the shoulders drop away from the ears", false, 30],
-    ["Neck Half-Circles","Chin to chest, roll the ear toward one shoulder then the other — slow", false, 30],
-    ["Chin Tuck & Nod","Gently draw the chin back (double-chin), small slow nods", false, 30],
-    ["Upper Trap Stretch","Ear toward the shoulder, let the opposite hand reach down — feel the side of the neck", true, 60],
-    ["Levator Scapulae Stretch","Nose toward your armpit, light hand on the back of the head — no pulling", true, 60],
-    ["Cross-Body Shoulder Stretch","Draw the arm across the chest, breathe into the shoulder", true, 50],
-    ["Chest / Doorway Opener","Open the chest, roll the shoulders back — undo the hunch", false, 40],
-  ]},
-  {phase:"Upper & Mid Back", items:[
-    ["Cat–Cow","On all fours — round the back on the exhale, arch and open on the inhale", false, 45],
-    ["Thread the Needle","Reach one arm under and through, rest the shoulder & temple down, breathe", true, 60],
-    ["Open-Book Rotation","Side-lying, open the top arm across and rotate through the mid-back", true, 60],
-    ["Puppy Pose","Hips over knees, walk the hands forward, chest melts toward the floor", false, 45],
-    ["Child's Pose Side Reach","Hips to heels, walk the hands to one side — stretch the whole side body", true, 50],
+  {phase:"Back Warm-Up", items:[
+    ["Cat–Cow","On all fours — round the back on the exhale, arch and open on the inhale, slow", false, 50],
+    ["Pelvic Tilts","On your back, knees bent — gently rock the pelvis, flatten then arch the low back", false, 35],
+    ["Child's Pose","Hips back toward the heels, forehead down, breathe into the low back", false, 45],
   ]},
   {phase:"Lower Back", items:[
-    ["Pelvic Tilts","On your back, knees bent — gently rock the pelvis, flatten and arch the low back", false, 30],
-    ["Single Knee-to-Chest","Hug one knee in, other leg long, let the low back release", true, 60],
-    ["Double Knee-to-Chest","Hug both knees, gently rock side to side", false, 40],
-    ["Supine Spinal Twist","Knees drop to one side, arms wide, turn the head the other way — soften and breathe", true, 70],
+    ["Single Knee-to-Chest","Hug one knee in, other leg long, let the low back release", true, 65],
+    ["Double Knee-to-Chest","Hug both knees, gently rock side to side", false, 45],
+    ["Supine Spinal Twist","Knees drop to one side, arms wide, turn the head the other way — soften and breathe", true, 80],
+    ["QL Side-Bend Stretch","Reach up and over to one side, lengthen the waist — targets the side low-back (QL)", true, 60],
     ["Sphinx (gentle)","Forearms down, lift the chest a little — only if it feels good, never sharp", false, 40],
   ]},
   {phase:"Glutes & Hips", items:[
-    ["Figure-4 Glute Stretch","Ankle over the opposite knee, draw the thigh in — deep glute & piriformis release", true, 70],
-    ["Pigeon / Seated Glute","Shin forward, sink the hip down and breathe into the glute", true, 70],
-    ["Low Lunge Hip Flexor","Back knee down, sink the hips forward — opens the front of the hip", true, 55],
+    ["Figure-4 Glute Stretch","Ankle over the opposite knee, draw the thigh in — deep glute & piriformis release", true, 80],
+    ["Pigeon / Seated Glute","Shin forward, sink the hip down and breathe into the glute", true, 80],
+    ["Low Lunge Hip Flexor","Back knee down, sink the hips forward — opens the front of the hip", true, 60],
     ["Reclined Hamstring Stretch","Leg up, hold behind the thigh (or use a strap/towel), keep it gentle", true, 55],
     ["Happy Baby","Hold the feet, knees wide toward the floor, rock a little — hips & low back", false, 40],
   ]},
+  {phase:"Upper & Mid Back", items:[
+    ["Thread the Needle","Reach one arm under and through, rest the shoulder & temple down, breathe", true, 60],
+    ["Open-Book Rotation","Side-lying, open the top arm across and rotate through the mid-back", true, 60],
+    ["Puppy Pose","Hips over the knees, walk the hands forward, chest melts toward the floor", false, 45],
+  ]},
+  {phase:"Neck & Shoulders", items:[
+    ["Shoulder Rolls","Slow, big rolls back and down — let the shoulders drop from the ears", false, 30],
+    ["Upper Trap Stretch","Ear toward the shoulder, let the opposite hand reach down — the side of the neck", true, 55],
+    ["Levator Scapulae Stretch","Nose toward your armpit, light hand on the back of the head — no pulling", true, 55],
+    ["Cross-Body Shoulder Stretch","Draw the arm across the chest, breathe into the shoulder", true, 45],
+  ]},
   {phase:"Wind Down", items:[
-    ["Child's Pose","Sink the hips back, forehead down, long slow breaths", false, 60],
-    ["Gentle Supine Twist","Easy twist each way, no effort — just let go", true, 60],
-    ["Rest & Breathe","Lie flat, arms soft, slow belly breaths — you're done", false, 60],
+    ["Child's Pose","Sink the hips back, forehead down, long slow breaths", false, 55],
+    ["Gentle Supine Twist","Easy twist each way, no effort — just let go", true, 55],
+    ["Rest & Breathe","Lie flat, arms soft, slow belly breaths — you're done", false, 55],
   ]},
 ];
 
@@ -1059,7 +1059,7 @@ const fmt = s=>{s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(
 const STYLE_LABEL = {barrys:"HIIT", booty:"Booty Burn", arms:"Arm Sculpt", core:"Core", relief:"Relief"};
 /* per-block colored tag + short label shown in the preview */
 function blockMeta(phase, cfg){
-  if(/^(Neck|Upper & Mid|Lower Back|Glutes & Hips|Wind Down)/.test(phase)) return {tag:"cool", label:"Release", sub:"gentle holds"};
+  if(/^(Back Warm|Lower Back|Upper & Mid|Neck|Glutes & Hips|Wind Down)/.test(phase)) return {tag:"cool", label:"Release", sub:"gentle holds"};
   if(phase.startsWith("Tread"))         return {tag:"tread", label: cfg.treadmill?"Treadmill":"Cardio"};
   if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights", sub:"Glute max · by reps"};
   if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands", sub:"Glute med + min — “the shelf” · timed"};
