@@ -133,6 +133,9 @@
   /* transition / relocation state */
   body.is-move{--accent:#ffb020}
   body.is-move .rfg{stroke:#ffb020}
+  /* calm state for the gentle stretch / relief flow */
+  body.is-relief{--accent:#2bb8a3}
+  body.is-relief .rfg{stroke:#2bb8a3}
   /* self-paced rep set (no countdown — tap DONE) */
   body.is-reps{--accent:#5b8cff}
   body.is-reps .rfg{stroke:#5b8cff}
@@ -174,6 +177,10 @@
       <div class="style" data-style="core" aria-pressed="false">
         <div class="nm">CORE 🔥</div>
         <div class="ds">Abs &amp; obliques — kettlebell core + planks and anti-rotation holds. 15 min.</div>
+      </div>
+      <div class="style" data-style="relief" aria-pressed="false" style="grid-column:1/-1">
+        <div class="nm">RELIEF 🧘</div>
+        <div class="ds">Gentle 30-min full-body stretch — neck, shoulders, back &amp; glutes. Calm, guided holds for tight, achy muscles.</div>
       </div>
     </div>
 
@@ -848,6 +855,67 @@ function generateAbs(cfg){
   return steps;
 }
 
+/* ============================================================
+   RELIEF — gentle 30-min full-body stretch (all timed holds).
+   Head-to-toe flow for a tight, achy back / neck / shoulder / glute.
+   Curated order (not random). {name, cue, unilateral?, holdSecs}.
+   ============================================================ */
+const RELIEF_FLOW = [
+  {phase:"Neck & Shoulders", items:[
+    ["Shoulder Rolls","Slow, big rolls back and down — let the shoulders drop away from the ears", false, 30],
+    ["Neck Half-Circles","Chin to chest, roll the ear toward one shoulder then the other — slow", false, 30],
+    ["Chin Tuck & Nod","Gently draw the chin back (double-chin), small slow nods", false, 30],
+    ["Upper Trap Stretch","Ear toward the shoulder, let the opposite hand reach down — feel the side of the neck", true, 60],
+    ["Levator Scapulae Stretch","Nose toward your armpit, light hand on the back of the head — no pulling", true, 60],
+    ["Cross-Body Shoulder Stretch","Draw the arm across the chest, breathe into the shoulder", true, 50],
+    ["Chest / Doorway Opener","Open the chest, roll the shoulders back — undo the hunch", false, 40],
+  ]},
+  {phase:"Upper & Mid Back", items:[
+    ["Cat–Cow","On all fours — round the back on the exhale, arch and open on the inhale", false, 45],
+    ["Thread the Needle","Reach one arm under and through, rest the shoulder & temple down, breathe", true, 60],
+    ["Open-Book Rotation","Side-lying, open the top arm across and rotate through the mid-back", true, 60],
+    ["Puppy Pose","Hips over knees, walk the hands forward, chest melts toward the floor", false, 45],
+    ["Child's Pose Side Reach","Hips to heels, walk the hands to one side — stretch the whole side body", true, 50],
+  ]},
+  {phase:"Lower Back", items:[
+    ["Pelvic Tilts","On your back, knees bent — gently rock the pelvis, flatten and arch the low back", false, 30],
+    ["Single Knee-to-Chest","Hug one knee in, other leg long, let the low back release", true, 60],
+    ["Double Knee-to-Chest","Hug both knees, gently rock side to side", false, 40],
+    ["Supine Spinal Twist","Knees drop to one side, arms wide, turn the head the other way — soften and breathe", true, 70],
+    ["Sphinx (gentle)","Forearms down, lift the chest a little — only if it feels good, never sharp", false, 40],
+  ]},
+  {phase:"Glutes & Hips", items:[
+    ["Figure-4 Glute Stretch","Ankle over the opposite knee, draw the thigh in — deep glute & piriformis release", true, 70],
+    ["Pigeon / Seated Glute","Shin forward, sink the hip down and breathe into the glute", true, 70],
+    ["Low Lunge Hip Flexor","Back knee down, sink the hips forward — opens the front of the hip", true, 55],
+    ["Reclined Hamstring Stretch","Leg up, hold behind the thigh (or use a strap/towel), keep it gentle", true, 55],
+    ["Happy Baby","Hold the feet, knees wide toward the floor, rock a little — hips & low back", false, 40],
+  ]},
+  {phase:"Wind Down", items:[
+    ["Child's Pose","Sink the hips back, forehead down, long slow breaths", false, 60],
+    ["Gentle Supine Twist","Easy twist each way, no effort — just let go", true, 60],
+    ["Rest & Breathe","Lie flat, arms soft, slow belly breaths — you're done", false, 60],
+  ]},
+];
+
+function generateRelief(cfg){
+  const trans = 6;
+  const flat = [];
+  RELIEF_FLOW.forEach(sec => sec.items.forEach(it => flat.push({phase:sec.phase, name:it[0], cue:it[1], side:!!it[2], hold:it[3]})));
+  // scale holds gently to hit the chosen duration (clamped so nothing gets silly)
+  const holdSum = flat.reduce((t,s)=>t+s.hold,0);
+  const transSum = (flat.length-1)*trans + 12;
+  const scale = Math.max(0.6, Math.min(1.5, (cfg.min*60 - transSum)/holdSum));
+  const steps=[];
+  flat.forEach((s,i)=>{
+    steps.push({phase:s.phase, kind:"work", name:s.name, cue:s.cue, dur:Math.max(20,Math.round(s.hold*scale)), side:s.side});
+    if(i<flat.length-1) steps.push({phase:flat[i+1].phase, kind:"rest", name:"Ease in", cue:"Gently move into the next position — keep breathing", dur:trans});
+  });
+  steps.unshift({phase:flat[0].phase, kind:"prep", name:"Settle In", cue:"Get comfy, soften your breath — nothing should ever feel sharp", dur:12});
+  attachNext(steps);
+  return steps;
+}
+
 /* insert a relocation window whenever the workout switches between the
    treadmill and the floor, so you have time to actually walk over */
 function withTransitions(steps, cfg){
@@ -874,6 +942,7 @@ function generate(cfg){
   if(cfg.style==="booty") return generateBooty(cfg);
   if(cfg.style==="arms")  return generateArms(cfg);
   if(cfg.style==="core")  return generateAbs(cfg);
+  if(cfg.style==="relief")return generateRelief(cfg);
   const P = presets(cfg.style, cfg.intensity);
   const F = FOCUS[cfg.focus];
   const steps=[];
@@ -925,7 +994,7 @@ function generate(cfg){
    ============================================================ */
 const cfg = { style:"barrys", focus:"full", min:45, intensity:"standard", treadmill:false, voice:true };
 let WORKOUT = [];
-const STYLE_DEFAULT_MIN = { booty:30, arms:20, core:15 };
+const STYLE_DEFAULT_MIN = { booty:30, arms:20, core:15, relief:30 };
 
 function pickGroup(sel, key, val){
   sel.querySelectorAll("[aria-pressed]").forEach(el=>{
@@ -969,7 +1038,7 @@ bindSwitch("sw-tread","treadmill"); bindSwitch("sw-voice","voice");
 try{
   const saved=JSON.parse(localStorage.getItem("roadwork")||"null");
   if(saved){ Object.assign(cfg,saved);
-    if(["barrys","booty","arms","core"].indexOf(cfg.style)<0) cfg.style="barrys";  // legacy (e.g. "reshape") → HIIT
+    if(["barrys","booty","arms","core","relief"].indexOf(cfg.style)<0) cfg.style="barrys";  // legacy → HIIT
     delete cfg.level;
     document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed",s.dataset.style===cfg.style));
     pickGroup(focusEl,"focus",cfg.focus); pickGroup(durEl,"min",cfg.min); pickGroup(intEl,"int",cfg.intensity);
@@ -987,9 +1056,10 @@ function byId(i){return document.getElementById(i);}
 function show(name){ for(const k in screens) screens[k].classList.toggle("hidden", k!==name); window.scrollTo(0,0); }
 
 const fmt = s=>{s=Math.max(0,Math.round(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
-const STYLE_LABEL = {barrys:"HIIT", booty:"Booty Burn", arms:"Arm Sculpt", core:"Core"};
+const STYLE_LABEL = {barrys:"HIIT", booty:"Booty Burn", arms:"Arm Sculpt", core:"Core", relief:"Relief"};
 /* per-block colored tag + short label shown in the preview */
 function blockMeta(phase, cfg){
+  if(/^(Neck|Upper & Mid|Lower Back|Glutes & Hips|Wind Down)/.test(phase)) return {tag:"cool", label:"Release", sub:"gentle holds"};
   if(phase.startsWith("Tread"))         return {tag:"tread", label: cfg.treadmill?"Treadmill":"Cardio"};
   if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights", sub:"Glute max · by reps"};
   if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands", sub:"Glute med + min — “the shelf” · timed"};
@@ -1008,7 +1078,7 @@ function blockMeta(phase, cfg){
 
 function buildPreview(){
   const total = WORKOUT.reduce((t,s)=>t+s.dur,0);
-  byId("m-time").textContent = (cfg.style!=="barrys"?"~":"")+Math.round(total/60);
+  byId("m-time").textContent = (["booty","arms","core"].indexOf(cfg.style)>=0?"~":"")+Math.round(total/60);
   byId("m-style").textContent = STYLE_LABEL[cfg.style] || "Barry's";
   // group by phase
   const groups=[]; let cur=null;
@@ -1131,6 +1201,7 @@ function loadStep(i){
   document.body.classList.toggle("is-rest", rest);
   document.body.classList.toggle("is-move", move);
   document.body.classList.toggle("is-reps", repsMode);
+  document.body.classList.toggle("is-relief", cfg.style==="relief");
   byId("t-phase").textContent=s.phase;
   byId("t-name").textContent=s.name;
 
@@ -1234,10 +1305,10 @@ byId("c-end").addEventListener("click",()=>{ if(confirm("End this workout?")) fi
 function finishWorkout(){
   T.running=false; clearTick(); relWake();
   if("speechSynthesis"in window) speechSynthesis.cancel();
-  document.body.classList.remove("is-rest","is-move");
+  document.body.classList.remove("is-rest","is-move","is-relief");
   beep(880,0.15,0.3); setTimeout(()=>beep(1180,0.3,0.3),160);
   say("Workout complete. Great work.");
-  const focusLabel = cfg.style==="booty" ? "Glutes" : cfg.style==="arms" ? "Arms" : cfg.style==="core" ? "Abs" : FOCUS[cfg.focus].label;
+  const focusLabel = cfg.style==="booty" ? "Glutes" : cfg.style==="arms" ? "Arms" : cfg.style==="core" ? "Abs" : cfg.style==="relief" ? "Stretch" : FOCUS[cfg.focus].label;
   byId("d-sum").textContent = Math.max(1,Math.round((T.elapsed||totalDur())/60))+" minutes · "+
     (STYLE_LABEL[cfg.style]||"Barry's")+" · "+focusLabel;
   show("done");
