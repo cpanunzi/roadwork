@@ -196,6 +196,18 @@
       </div>
     </div>
 
+    <div id="sec-relief-focus" class="hidden">
+      <h2 class="section">Focus area</h2>
+      <div class="chips" id="relief-focus">
+        <div class="chip" data-rfocus="all" aria-pressed="true">Full Body</div>
+        <div class="chip" data-rfocus="backglutes" aria-pressed="false">Back &amp; Glutes</div>
+        <div class="chip" data-rfocus="lower" aria-pressed="false">Lower Back</div>
+        <div class="chip" data-rfocus="glutes" aria-pressed="false">Glutes &amp; Hips</div>
+        <div class="chip" data-rfocus="upperback" aria-pressed="false">Upper Back</div>
+        <div class="chip" data-rfocus="neck" aria-pressed="false">Neck &amp; Shoulders</div>
+      </div>
+    </div>
+
     <h2 class="section">Duration</h2>
     <div class="chips" id="dur">
       <div class="chip" data-min="20" aria-pressed="false">20<small>MIN</small></div>
@@ -856,57 +868,100 @@ function generateAbs(cfg){
 }
 
 /* ============================================================
-   RELIEF — gentle 30-min full-body stretch (all timed holds).
-   Head-to-toe flow for a tight, achy back / neck / shoulder / glute.
-   Curated order (not random). {name, cue, unilateral?, holdSecs}.
+   RELIEF — gentle guided stretch (all timed holds). Pick an area of
+   focus + a duration; the routine is weighted toward that area.
+   Region pools: [name, cue, unilateral?, baseHoldSecs]
    ============================================================ */
-const RELIEF_FLOW = [
-  {phase:"Back Warm-Up", items:[
+const REGIONS = {
+  warmup: {phase:"Back Warm-Up", pool:[
     ["Cat–Cow","On all fours — round the back on the exhale, arch and open on the inhale, slow", false, 50],
     ["Pelvic Tilts","On your back, knees bent — gently rock the pelvis, flatten then arch the low back", false, 35],
     ["Child's Pose","Hips back toward the heels, forehead down, breathe into the low back", false, 45],
   ]},
-  {phase:"Lower Back", items:[
+  lower: {phase:"Lower Back", pool:[
     ["Single Knee-to-Chest","Hug one knee in, other leg long, let the low back release", true, 65],
-    ["Double Knee-to-Chest","Hug both knees, gently rock side to side", false, 45],
     ["Supine Spinal Twist","Knees drop to one side, arms wide, turn the head the other way — soften and breathe", true, 80],
     ["QL Side-Bend Stretch","Reach up and over to one side, lengthen the waist — targets the side low-back (QL)", true, 60],
+    ["Double Knee-to-Chest","Hug both knees, gently rock side to side", false, 45],
+    ["Knee Rolls","Knees bent & together, sway them slowly side to side — easy lumbar rotation", false, 45],
     ["Sphinx (gentle)","Forearms down, lift the chest a little — only if it feels good, never sharp", false, 40],
+    ["Seated Forward Fold","Legs long, hinge from the hips, let the back round gently — no forcing", false, 55],
   ]},
-  {phase:"Glutes & Hips", items:[
+  glutes: {phase:"Glutes & Hips", pool:[
     ["Figure-4 Glute Stretch","Ankle over the opposite knee, draw the thigh in — deep glute & piriformis release", true, 80],
     ["Pigeon / Seated Glute","Shin forward, sink the hip down and breathe into the glute", true, 80],
     ["Low Lunge Hip Flexor","Back knee down, sink the hips forward — opens the front of the hip", true, 60],
     ["Reclined Hamstring Stretch","Leg up, hold behind the thigh (or use a strap/towel), keep it gentle", true, 55],
+    ["Seated 90/90 Hip","Both knees bent at 90°, gently lean toward the front shin", true, 65],
+    ["Butterfly Stretch","Soles together, let the knees fall open, hinge forward a little", false, 50],
     ["Happy Baby","Hold the feet, knees wide toward the floor, rock a little — hips & low back", false, 40],
   ]},
-  {phase:"Upper & Mid Back", items:[
+  upper: {phase:"Upper & Mid Back", pool:[
     ["Thread the Needle","Reach one arm under and through, rest the shoulder & temple down, breathe", true, 60],
     ["Open-Book Rotation","Side-lying, open the top arm across and rotate through the mid-back", true, 60],
     ["Puppy Pose","Hips over the knees, walk the hands forward, chest melts toward the floor", false, 45],
+    ["Seated Spinal Twist","Sit tall, hand behind you, rotate gently and grow taller each breath", true, 55],
+    ["Chest / Doorway Opener","Open the chest in a doorway, roll the shoulders back — undo the hunch", false, 45],
+    ["Kneeling Lat Stretch","Hands on a chair/floor, sink the chest — stretch the lats & mid-back", false, 55],
+    ["Wall Angels","Back to a wall, slide the arms up and down — squeeze the shoulder blades", false, 45],
+    ["Cat–Cow","Flow through the spine — round on the exhale, open on the inhale", false, 45],
   ]},
-  {phase:"Neck & Shoulders", items:[
-    ["Shoulder Rolls","Slow, big rolls back and down — let the shoulders drop from the ears", false, 30],
-    ["Upper Trap Stretch","Ear toward the shoulder, let the opposite hand reach down — the side of the neck", true, 55],
-    ["Levator Scapulae Stretch","Nose toward your armpit, light hand on the back of the head — no pulling", true, 55],
-    ["Cross-Body Shoulder Stretch","Draw the arm across the chest, breathe into the shoulder", true, 45],
+  neck: {phase:"Neck & Shoulders", pool:[
+    ["Shoulder Rolls","Slow, big rolls back and down — let the shoulders drop from the ears", false, 35],
+    ["Upper Trap Stretch","Ear toward the shoulder, let the opposite hand reach down — the side of the neck", true, 60],
+    ["Levator Scapulae Stretch","Nose toward your armpit, light hand on the back of the head — no pulling", true, 60],
+    ["Cross-Body Shoulder Stretch","Draw the arm across the chest, breathe into the shoulder", true, 50],
+    ["Behind-Back Chest Opener","Clasp the hands behind your back, lift gently, open across the chest", false, 45],
+    ["SCM / Front-Neck Stretch","Tip the head back slightly and to one side — very gentle, feel the front of the neck", true, 45],
+    ["Neck Half-Circles","Chin to chest, roll the ear toward one shoulder then the other — slow", false, 40],
+    ["Chin Tuck & Nod","Gently draw the chin back (a light double-chin), small slow nods", false, 35],
   ]},
-  {phase:"Wind Down", items:[
+  winddown: {phase:"Wind Down", pool:[
     ["Child's Pose","Sink the hips back, forehead down, long slow breaths", false, 55],
     ["Gentle Supine Twist","Easy twist each way, no effort — just let go", true, 55],
     ["Rest & Breathe","Lie flat, arms soft, slow belly breaths — you're done", false, 55],
   ]},
-];
+};
+/* how much of the main time each region gets, per chosen focus */
+const RELIEF_FOCUS = {
+  all:        {label:"Full Body",       weights:{lower:1,   glutes:1,   upper:1,   neck:1  }},
+  backglutes: {label:"Back & Glutes",   weights:{lower:2,   glutes:2,   upper:0.6, neck:0.4}},
+  lower:      {label:"Lower Back",       weights:{lower:3,   glutes:1.2, upper:0.4, neck:0.3}},
+  glutes:     {label:"Glutes & Hips",    weights:{lower:1,   glutes:3,   upper:0.3, neck:0.3}},
+  upperback:  {label:"Upper Back",       weights:{lower:0.4, glutes:0.3, upper:3,   neck:1.2}},
+  neck:       {label:"Neck & Shoulders", weights:{lower:0.3, glutes:0.3, upper:1,   neck:3  }},
+};
 
 function generateRelief(cfg){
   const trans = 6;
+  const focus = RELIEF_FOCUS[cfg.rfocus] || RELIEF_FOCUS.all;
+  const short = cfg.min <= 15;
+  const warmN = short?2:3, windN = short?2:3;
+  // pick a sensible number of stretches for the duration, then split by weight
+  let totalN = Math.round(cfg.min*60/72);
+  totalN = Math.max(10, Math.min(34, totalN));
+  const mainN = Math.max(4, totalN - warmN - windN);
+  const regs = ["lower","glutes","upper","neck"];
+  const totalW = regs.reduce((t,r)=>t+focus.weights[r], 0);
+  const counts = {};
+  regs.forEach(r=>{
+    const w = focus.weights[r];
+    let n = Math.round(mainN * w / totalW);
+    n = Math.max(w>=1 ? 2 : (w>0 ? 1 : 0), n);       // active regions get at least 1–2
+    counts[r] = Math.min(REGIONS[r].pool.length, n); // never repeat within a region
+  });
+
   const flat = [];
-  RELIEF_FLOW.forEach(sec => sec.items.forEach(it => flat.push({phase:sec.phase, name:it[0], cue:it[1], side:!!it[2], hold:it[3]})));
-  // scale holds gently to hit the chosen duration (clamped so nothing gets silly)
-  const holdSum = flat.reduce((t,s)=>t+s.hold,0);
+  const take = (region, n) => { const R=REGIONS[region]; for(let i=0;i<n;i++){ const it=R.pool[i]; flat.push({phase:R.phase, name:it[0], cue:it[1], side:!!it[2], hold:it[3]}); } };
+  take("warmup", warmN);
+  regs.forEach(r=> take(r, counts[r]));              // back → glutes → upper → neck order
+  take("winddown", windN);
+
+  // scale holds to hit the chosen duration (clamped so nothing gets silly)
+  const holdSum = flat.reduce((t,s)=>t+s.hold, 0);
   const transSum = (flat.length-1)*trans + 12;
-  const scale = Math.max(0.6, Math.min(1.5, (cfg.min*60 - transSum)/holdSum));
-  const steps=[];
+  const scale = Math.max(0.6, Math.min(1.6, (cfg.min*60 - transSum)/holdSum));
+  const steps = [];
   flat.forEach((s,i)=>{
     steps.push({phase:s.phase, kind:"work", name:s.name, cue:s.cue, dur:Math.max(20,Math.round(s.hold*scale)), side:s.side});
     if(i<flat.length-1) steps.push({phase:flat[i+1].phase, kind:"rest", name:"Ease in", cue:"Gently move into the next position — keep breathing", dur:trans});
@@ -992,7 +1047,7 @@ function generate(cfg){
 /* ============================================================
    State + setup wiring
    ============================================================ */
-const cfg = { style:"barrys", focus:"full", min:45, intensity:"standard", treadmill:false, voice:true };
+const cfg = { style:"barrys", focus:"full", rfocus:"all", min:45, intensity:"standard", treadmill:false, voice:true };
 let WORKOUT = [];
 const STYLE_DEFAULT_MIN = { booty:30, arms:20, core:15, relief:30 };
 
@@ -1006,8 +1061,9 @@ function pickGroup(sel, key, val){
    (booty/arms/core) define their own focus and need no treadmill */
 function applyStyleUI(){
   const special = cfg.style!=="barrys";
-  document.getElementById("sec-focus").classList.toggle("hidden", special);
+  document.getElementById("sec-focus").classList.toggle("hidden", special);          // HIIT body-split
   document.getElementById("row-tread").classList.toggle("hidden", special);
+  document.getElementById("sec-relief-focus").classList.toggle("hidden", cfg.style!=="relief");  // relief area
 }
 document.querySelector(".styles").addEventListener("click",e=>{
   const el=e.target.closest(".style"); if(!el)return;
@@ -1019,6 +1075,9 @@ document.querySelector(".styles").addEventListener("click",e=>{
 document.getElementById("focus").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.focus=el.dataset.focus; pickGroup(focusEl,"focus",cfg.focus);
 });
+document.getElementById("relief-focus").addEventListener("click",e=>{
+  const el=e.target.closest(".chip"); if(!el)return; cfg.rfocus=el.dataset.rfocus; pickGroup(reliefFocusEl,"rfocus",cfg.rfocus);
+});
 document.getElementById("dur").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.min=+el.dataset.min; pickGroup(durEl,"min",cfg.min);
 });
@@ -1026,7 +1085,7 @@ document.getElementById("intensity").addEventListener("click",e=>{
   const el=e.target.closest(".chip"); if(!el)return; cfg.intensity=el.dataset.int; pickGroup(intEl,"int",cfg.intensity);
 });
 const focusEl=document.getElementById("focus"), durEl=document.getElementById("dur"),
-      intEl=document.getElementById("intensity");
+      intEl=document.getElementById("intensity"), reliefFocusEl=document.getElementById("relief-focus");
 
 function bindSwitch(id, key){
   const sw=document.getElementById(id);
@@ -1042,6 +1101,7 @@ try{
     delete cfg.level;
     document.querySelectorAll(".style").forEach(s=>s.setAttribute("aria-pressed",s.dataset.style===cfg.style));
     pickGroup(focusEl,"focus",cfg.focus); pickGroup(durEl,"min",cfg.min); pickGroup(intEl,"int",cfg.intensity);
+    if(cfg.rfocus) pickGroup(reliefFocusEl,"rfocus",cfg.rfocus);
     document.getElementById("sw-tread").setAttribute("aria-pressed",cfg.treadmill);
     document.getElementById("sw-voice").setAttribute("aria-pressed",cfg.voice);
   }
