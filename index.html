@@ -384,14 +384,33 @@ const EX = {
     ["Tuck Jumps","Knees to chest, soft landing"],
   ],
 };
+/* treadmill paces (km/h) — jog=recover on the move, up to all-out sprint */
 const PACE = {
-  "Base Jog":"Comfortable working jog — settle in",
-  "Run":"Moderate run, you're working now",
-  "Push":"Base pace +2 — uncomfortable but holding",
-  "Sprint":"All out — empty the tank",
-  "Incline Push":"Crank the incline, power up the hill",
+  walk:  {nm:"Walk",   kmh:"5–6 km/h",   cue:"catch your breath, keep the legs moving"},
+  jog:   {nm:"Jog",    kmh:"10 km/h",    cue:"easy — recover on the move"},
+  run:   {nm:"Run",    kmh:"12 km/h",    cue:"steady & controlled, you're working"},
+  hill:  {nm:"Hill",   kmh:"10–11 km/h", cue:"power up the incline — strong & steady"},
+  fast:  {nm:"Fast",   kmh:"14 km/h",    cue:"uncomfortable but holding"},
+  sprint:{nm:"Sprint", kmh:"15–16 km/h", cue:"all out — empty the tank"},
 };
-const HARD = ["Run","Push","Sprint","Incline Push"];
+/* run rounds — segments [pace, seconds, incline%?]. Active jog/walk recovery is
+   built into the template; no auto-stop after every effort. Warm ramp is prepended
+   to the first round. Endurance = steady + hills; Speed = short hard efforts. */
+const RUN_ROUNDS = {
+  warm: [["walk",30],["jog",45],["run",45]],
+  endurance: [
+    {nm:"Incline Drop", segs:[["hill",60,7],["hill",60,6],["hill",60,5],["hill",60,4],["hill",60,3],["hill",60,2],["hill",60,1]]},
+    {nm:"Tempo Build",  segs:[["jog",60],["run",120],["fast",45],["run",90],["fast",30],["jog",60]]},
+    {nm:"Rolling Hills",segs:[["hill",90,4],["run",75,1],["hill",90,6],["run",75,1],["jog",60]]},
+    {nm:"Steady Climb", segs:[["jog",60,1],["run",90,2],["run",100,3],["run",90,4],["jog",60,1]]},
+  ],
+  speed: [
+    {nm:"Sprint Ladder", segs:[["jog",60],["run",90],["fast",30],["sprint",30],["jog",60],["run",90],["fast",30],["sprint",30],["walk",60]]},
+    {nm:"30/30s",        segs:[["run",60],["fast",30],["jog",30],["fast",30],["jog",30],["fast",30],["jog",30],["sprint",30],["walk",60]]},
+    {nm:"Sprint Repeats",segs:[["jog",60],["sprint",30],["walk",45],["sprint",30],["walk",45],["sprint",30],["walk",45],["sprint",30],["jog",60]]},
+    {nm:"Push & Sprint", segs:[["run",60],["fast",45],["sprint",30],["fast",45],["run",60],["sprint",30],["jog",75]]},
+  ],
+};
 
 const FOCUS = {
   full:       {label:"Full Body",   groups:["legs","push","pull","arms","shoulders","core"]},
@@ -424,17 +443,26 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
 
 function mkEx(arr){return {name:arr[0], cue:arr[1], uni:!!arr[2], reps:arr[3], kind:arr[4]};}
 
-function treadBlock(label, P, treadmill){
-  const steps=[]; const pool = shuffle(EX.cardio);
-  for(let i=0;i<P.treadN;i++){
-    if(treadmill){
-      const pace = HARD[i % HARD.length];
-      steps.push({phase:label, kind:"tread", name:pace, cue:PACE[pace], dur:P.hard});
-    }else{
-      const ex = pool[i % pool.length];
+function treadBlock(label, P, treadmill, type, warm){
+  const steps=[];
+  const typeLabel = type==="speed" ? "Speed" : "Endurance";
+  if(treadmill){
+    const phase = label+" · "+typeLabel;
+    const round = rnd(RUN_ROUNDS[type] || RUN_ROUNDS.endurance);
+    const segs = warm ? [...RUN_ROUNDS.warm, ...round.segs] : round.segs;
+    const k = P.hard/35;   // mild intensity scaling of the work efforts
+    segs.forEach(([pace,dur,inc])=>{
+      const p=PACE[pace]; const rec = pace==="walk"||pace==="jog";
+      const cue = p.kmh + (inc?(" · "+inc+"% incline"):"") + " · " + (rec?"recover on the move":p.cue);
+      steps.push({phase, kind:"tread", name:p.nm, cue, dur:Math.max(20,Math.round(dur*(rec?1:k)))});
+    });
+  }else{
+    // bodyweight fallback — steady (endurance) or explosive (speed), active recovery only mid-round
+    const pool = shuffle(EX.cardio), n = type==="speed"?6:5;
+    for(let i=0;i<n;i++){ const ex=pool[i%pool.length];
       steps.push({phase:label, kind:"cardio", name:ex[0], cue:ex[1], dur:P.hard});
+      if(i<n-1) steps.push({phase:label, kind:"rest", name:"Active Recovery", cue:"March or jog it out — keep moving", dur:Math.max(10,P.easy-12)});
     }
-    if(i<P.treadN-1) steps.push({phase:label, kind:"rest", name:"Recovery", cue:"Walk it back, slow the breath", dur:P.easy});
   }
   return steps;
 }
@@ -1010,9 +1038,10 @@ function generate(cfg){
   const finisherDur = P.work*4 + P.rest*3; // core finisher
   const budget = cfg.min*60 - coolDur - finisherDur;
 
+  const roundType = t => t===1 ? "endurance" : t===2 ? "speed" : (t%2 ? "endurance":"speed");
   let tread=1, floor=1;
   while(sum(steps) < budget - 60){            // leave a little headroom
-    const tb = treadBlock(`Tread ${tread}`, P, cfg.treadmill);
+    const tb = treadBlock(`Tread ${tread}`, P, cfg.treadmill, roundType(tread), tread===1);
     if(sum(steps)+sum(tb) > budget) break;
     steps.push(...tb); tread++;
     const fb = floorBlock(`Floor ${floor}`, F.groups, P);
@@ -1024,7 +1053,7 @@ function generate(cfg){
     if(tread>6) break; // safety
   }
   // guarantee at least one of each
-  if(tread===1){ steps.push(...treadBlock("Tread 1", P, cfg.treadmill)); }
+  if(tread===1){ steps.push(...treadBlock("Tread 1", P, cfg.treadmill, "endurance", true)); }
   if(floor===1){ steps.push(...floorBlock("Floor 1", F.groups, P)); }
 
   // core finisher (skip the dedicated one if focus already core-only & short)
@@ -1120,7 +1149,7 @@ const STYLE_LABEL = {barrys:"HIIT", booty:"Booty Burn", arms:"Arm Sculpt", core:
 /* per-block colored tag + short label shown in the preview */
 function blockMeta(phase, cfg){
   if(/^(Back Warm|Lower Back|Upper & Mid|Neck|Glutes & Hips|Wind Down)/.test(phase)) return {tag:"cool", label:"Release", sub:"gentle holds"};
-  if(phase.startsWith("Tread"))         return {tag:"tread", label: cfg.treadmill?"Treadmill":"Cardio"};
+  if(phase.startsWith("Tread"))         return {tag:"tread", label: !cfg.treadmill?"Cardio":/Speed/.test(phase)?"Speed":"Endurance", sub: cfg.treadmill? (/Speed/.test(phase)?"sprints + active recovery":"steady runs + incline") : ""};
   if(phase.startsWith("Glute Strength"))return {tag:"floor", label:"Weights", sub:"Glute max · by reps"};
   if(phase.startsWith("Band"))          return {tag:"core",  label:"Bands", sub:"Glute med + min — “the shelf” · timed"};
   if(phase.startsWith("Burnout"))       return {tag:"tread", label:"Burnout", sub:"All 3 heads · AMRAP"};
