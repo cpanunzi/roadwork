@@ -492,20 +492,39 @@ function treadBlock(label, P, treadmill, type, warm){
   }
   return steps;
 }
-function floorBlock(label, groups, P, n, setup){
+/* one weight for the whole block, chosen by muscle group. Guidance spans levels
+   so you grab a single pair and stay put — no mid-block weight/position changes. */
+function themeLoad(groups){
+  const g = groups.join(",");
+  if(/legs/.test(g))            return {grab:"one medium–heavy pair", kg:"beg 6–8 · int 10–12 · adv 14–18 kg", reps:"12–15"};
+  if(/push|pull/.test(g))       return {grab:"one medium pair",        kg:"beg 5–7 · int 8–10 · adv 12–14 kg", reps:"10–12"};
+  if(/shoulders|arms/.test(g))  return {grab:"one light pair",         kg:"beg 2–3 · int 4–5 · adv 6–8 kg",   reps:"12–15"};
+  return {grab:"a light dumbbell or bodyweight", kg:"beg BW · int 4–6 · adv 8 kg", reps:"15–20"}; // core
+}
+function floorBlock(label, groups, P, n){
   n = n || P.floorN;
   const pool = shuffle(groups.flatMap(g=>EX[g].map(mkEx)));
-  // de-dupe by name while keeping order
   const seen=new Set(), uniq=[];
   for(const e of pool){ if(!seen.has(e.name)){seen.add(e.name); uniq.push(e);} }
+  const load = themeLoad(groups);
   const steps=[];
-  const themeNm = (label.split(" · ")[1]||"").toLowerCase();
-  // setup window to grab the right weights (used when no tread→floor transition precedes)
-  if(setup) steps.push({phase:label, kind:"rest", name:"Set up", cue:"Grab your weights for "+(themeNm||"this block")+" — get in position", dur:15});
-  for(let i=0;i<n;i++){
-    const ex = uniq[i % uniq.length];
-    steps.push({phase:label, kind:"work", name:ex.name, cue:ex.cue, dur:P.work, side:ex.uni});
-    if(i<n-1) steps.push({phase:label, kind:"rest", name:"Rest", cue:"Reset & breathe — adjust the weight if you need", dur:P.rest});
+  // grab-weights setup (also serves as the tread→floor changeover; one weight all block)
+  steps.push({phase:label, kind:"move", name:"Grab Weights",
+    cue:"Grab "+load.grab+" — "+load.kg+" · one weight the whole block, aim ~"+load.reps+" reps", dur:20});
+  let efforts=0, i=0;
+  while(efforts < n && i < uniq.length*2){
+    const ex = uniq[i % uniq.length]; i++;
+    if(ex.uni){
+      // full set each side — NOT 20/20 split
+      steps.push({phase:label, kind:"work", name:ex.name+" · Left",  cue:ex.cue, dur:P.work, reps:load.reps});
+      steps.push({phase:label, kind:"rest", name:"Switch sides", cue:"Other side — same weight", dur:Math.max(6,P.rest-6)});
+      steps.push({phase:label, kind:"work", name:ex.name+" · Right", cue:ex.cue, dur:P.work, reps:load.reps});
+      efforts += 2;
+    }else{
+      steps.push({phase:label, kind:"work", name:ex.name, cue:ex.cue, dur:P.work, reps:load.reps});
+      efforts += 1;
+    }
+    if(efforts < n) steps.push({phase:label, kind:"rest", name:"Rest", cue:"Reset & breathe — keep the same weight", dur:P.rest});
   }
   return steps;
 }
@@ -1036,14 +1055,11 @@ function withTransitions(steps, cfg){
   const out=[]; let prev=null;
   for(const s of steps){
     const l = loc(s);
-    if(prev!==null && l!==prev){
-      const toTread = l==="tread";
-      out.push({
-        phase:s.phase, kind:"move",
-        name: toTread ? "To the Treadmill" : "To the Floor",
-        cue:  toTread ? "Hop on and set your pace" : "Grab your weights & set up on the mat",
-        dur: toTread ? MOVE : MOVE+10, nextName: s.name,   // more time to grab/adjust weights
-      });
+    // only the floor→treadmill changeover needs a window; the floor block carries
+    // its own "Grab Weights" setup for the treadmill→floor direction
+    if(prev==="floor" && l==="tread"){
+      out.push({phase:s.phase, kind:"move", name:"To the Treadmill",
+        cue:"Hop on and set your pace", dur:MOVE, nextName:s.name});
     }
     out.push(s); prev=l;
   }
@@ -1069,7 +1085,7 @@ function generate(cfg){
 
   const roundType = t => t===1 ? "endurance" : t===2 ? "speed" : (t%2 ? "endurance":"speed");
   const themeFor = f => F.blocks[(f-1) % F.blocks.length];
-  const mkFloor = f => { const th=themeFor(f); return floorBlock(`Floor ${f} · ${th.nm}`, th.g, P, null, !cfg.treadmill); };
+  const mkFloor = f => { const th=themeFor(f); return floorBlock(`Floor ${f} · ${th.nm}`, th.g, P); };
   let tread=1, floor=1;
   while(sum(steps) < budget - 60){            // leave a little headroom
     const tb = treadBlock(`Tread ${tread}`, P, cfg.treadmill, roundType(tread), tread===1);
@@ -1087,8 +1103,8 @@ function generate(cfg){
   if(tread===1){ steps.push(...treadBlock("Tread 1", P, cfg.treadmill, "endurance", true)); }
   if(floor===1){ steps.push(...mkFloor(1)); }
 
-  // core finisher (own weights/bodyweight — always a quick setup)
-  steps.push(...floorBlock("Core Finisher", ["core"], P, 4, true));
+  // core finisher (own weights/bodyweight — carries its own setup)
+  steps.push(...floorBlock("Core Finisher", ["core"], P, 4));
 
   // cooldown
   COOL.forEach(c=>steps.push({phase:"Cool-Down", kind:"cool", name:c[0], cue:c[1], dur:30}));
