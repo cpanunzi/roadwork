@@ -210,6 +210,8 @@
 
     <h2 class="section">Duration</h2>
     <div class="chips" id="dur">
+      <div class="chip" data-min="10" aria-pressed="false">10<small>MIN</small></div>
+      <div class="chip" data-min="15" aria-pressed="false">15<small>MIN</small></div>
       <div class="chip" data-min="20" aria-pressed="false">20<small>MIN</small></div>
       <div class="chip" data-min="30" aria-pressed="false">30<small>MIN</small></div>
       <div class="chip" data-min="45" aria-pressed="true">45<small>MIN</small></div>
@@ -962,6 +964,7 @@ const REGIONS = {
     ["Knee Rolls","Knees bent & together, sway them slowly side to side — easy lumbar rotation", false, 45],
     ["Sphinx (gentle)","Forearms down, lift the chest a little — only if it feels good, never sharp", false, 40],
     ["Seated Forward Fold","Legs long, hinge from the hips, let the back round gently — no forcing", false, 55],
+    ["Prayer Stretch","Kneel and sit the hips back toward the heels, walk the hands forward & long — releases the lower back", false, 55],
   ]},
   glutes: {phase:"Glutes & Hips", pool:[
     ["Figure-4 Glute Stretch","Ankle over the opposite knee, draw the thigh in — deep glute & piriformis release", true, 80],
@@ -970,6 +973,7 @@ const REGIONS = {
     ["Reclined Hamstring Stretch","Leg up, hold behind the thigh (or use a strap/towel), keep it gentle", true, 55],
     ["Seated 90/90 Hip","Both knees bent at 90°, gently lean toward the front shin", true, 65],
     ["Butterfly Stretch","Soles together, let the knees fall open, hinge forward a little", false, 50],
+    ["90/90 Hip Switches","Sit in 90/90, rotate both knees down to the other side and back — mobilise & open the hips", false, 55],
     ["Happy Baby","Hold the feet, knees wide toward the floor, rock a little — hips & low back", false, 40],
   ]},
   upper: {phase:"Upper & Mid Back", pool:[
@@ -1028,7 +1032,13 @@ function generateRelief(cfg){
   });
 
   const flat = [];
-  const take = (region, n) => { const R=REGIONS[region]; for(let i=0;i<n;i++){ const it=R.pool[i]; flat.push({phase:R.phase, name:it[0], cue:it[1], side:!!it[2], hold:it[3]}); } };
+  // warm-up / wind-down keep their curated order; main regions shuffle for variety
+  // (so every stretch in the pool can appear, not just the first few)
+  const take = (region, n) => {
+    const R=REGIONS[region];
+    const pool = (region==="warmup"||region==="winddown") ? R.pool : shuffle(R.pool);
+    for(let i=0;i<n && i<pool.length;i++){ const it=pool[i]; flat.push({phase:R.phase, name:it[0], cue:it[1], side:!!it[2], hold:it[3]}); }
+  };
   take("warmup", warmN);
   regs.forEach(r=> take(r, counts[r]));              // back → glutes → upper → neck order
   take("winddown", windN);
